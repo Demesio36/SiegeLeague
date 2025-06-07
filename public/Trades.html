@@ -67,8 +67,8 @@
 
   <script>
   const loggedInUser = localStorage.getItem("loggedInUser");
-  const playersUrl = "/data/players.json";
-  const tradesUrl = "/data/trades.json";
+  const playersUrl = ".netlify/functions/data/players.json";
+  const tradesUrl = ".netlify/functions/data/trades.json";
 
   let allPlayersData = {};
   let allTrades = [];
