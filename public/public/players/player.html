@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Player Page</title>
+  <link rel="stylesheet" href="../style.css" />
+</head>
+<body>
+  <header>
+    <h1>Player's Page</h1>
+    <a href="../index.html">Back to Player List</a>
+    <a href="../homepage.html">Homepage</a>
+    <a href="../Trades.html">Trades</a>
+    <button onclick="logout()">Logout</button>
+  </header>
+
+  <main>
+    <section>
+      <h2>Attackers</h2>
+      <table id="attackers">
+        <thead>
+          <tr><th>Operator</th><th>Kills</th><th>Deaths</th><th>K/D</th><th>HS%</th><th>Assists</th><th>Aces</th><th>Team Kills</th><th>Total Points</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Defenders</h2>
+      <table id="defenders">
+        <thead>
+          <tr><th>Operator</th><th>Kills</th><th>Deaths</th><th>K/D</th><th>HS%</th><th>Assists</th><th>Aces</th><th>Team Kills</th><th>Total Points</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Backups</h2>
+      <table id="backups">
+        <thead>
+          <tr><th>Operator</th><th>Kills</th><th>Deaths</th><th>K/D</th><th>HS%</th><th>Assists</th><th>Aces</th><th>Team Kills</th><th>Total Points</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <div id="swapContainer" style="margin-top: 2rem; display: none;">
+      <h3>Swap Backup with Main</h3>
+      <label for="mainSelect">Main Operator:</label>
+      <select id="mainSelect"></select>
+
+      <label for="backupSelect">Backup Operator:</label>
+      <select id="backupSelect"></select>
+
+      <button onclick="swapOperators()">Swap</button>
+      <p id="swapMessage" style="color: green; display: none;">Swap successful!</p>
+
+      <hr />
+      <h3>Request a Trade</h3>
+      <label for="yourOperator">Your Operator:</label>
+      <select id="yourOperator"></select>
+
+      <label for="targetPlayer">Target Player:</label>
+      <select id="targetPlayer" onchange="updateTargetOperators()"></select>
+
+      <label for="targetOperator">Their Operator:</label>
+      <select id="targetOperator"></select>
+
+      <button onclick="requestTrade()">Request Trade</button>
+      <p id="tradeMessage" style="color: green; display: none;">Trade request sent!</p>
+    </div>
+  </main>
+
+  <script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzAaTxsf7i6yt4ANZB7C65nT0ofGEMhNR5aolVYbd5awnBC6f6Cm5VqPjHOOTFKkaWF0Q/exec";
+
+    let playerData = [];
+    const loggedInUser = localStorage.getItem("loggedInUser");
+    const allPlayersData = {}; // Cache of all players' operators
+
+    if (!loggedInUser) {
+      window.location.href = "../login.html";
+    }
+
+    async function fetchStats() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const player = urlParams.get('sheet') || 'arby';
+
+      document.title = `${player}'s - Player Page`;
+      document.querySelector('h1').textContent = `${player}'s`;
+
+      try {
+        const response = await fetch(`${SCRIPT_URL}?sheet=${player}`);
+        const data = await response.json();
+        playerData = data;
+
+        const sections = { 'Attackers': [], 'Defenders': [], 'Backups': [] };
+        data.forEach(entry => {
+          if (sections[entry.Role]) sections[entry.Role].push(entry);
+        });
+
+        Object.entries(sections).forEach(([role, operators]) => {
+          const tableBody = document.querySelector(`#${role.toLowerCase()} tbody`);
+          tableBody.innerHTML = operators.map(createRow).join('');
+        });
+
+        if (player === loggedInUser.toLowerCase()) {
+          populateSwapDropdowns(sections);
+          populateTargetPlayers();
+          document.getElementById("swapContainer").style.display = "block";
+        } else {
+          document.getElementById("swapContainer").style.display = "none";
+        }
+
+      } catch (error) {
+        console.error('Error fetching player data:', error);
+      }
+    }
+
+    function createRow(stats) {
+      const kills = parseFloat(stats.Kills) || 0;
+      const deaths = parseFloat(stats.Deaths) || 0;
+      const kd = deaths === 0 ? kills : (kills / deaths);
+      const headshots = Math.round(parseFloat(stats["Headshot %"]) || 0);
+      const assists = parseFloat(stats.Assist) || 0;
+      const aces = parseFloat(stats.Aces) || 0;
+      const teamKills = parseFloat(stats["Team Kills"]) || 0;
+      const totalPoints = Math.round((kd * 100) + (headshots * 5) + assists + (aces * 50) - (teamKills * 50));
+
+      return `
+        <tr>
+          <td>${stats.Operator}</td>
+          <td>${kills}</td>
+          <td>${deaths}</td>
+          <td>${kd.toFixed(2)}</td>
+          <td>${headshots}</td>
+          <td>${assists}</td>
+          <td>${aces}</td>
+          <td>${teamKills}</td>
+          <td>${totalPoints}</td>
+        </tr>`;
+    }
+
+    function populateSwapDropdowns(sections) {
+      const mainSelect = document.getElementById("mainSelect");
+      const backupSelect = document.getElementById("backupSelect");
+      const yourOperator = document.getElementById("yourOperator");
+
+      const mainOps = [...sections.Attackers, ...sections.Defenders];
+
+      mainSelect.innerHTML = mainOps.map(op => `<option value="${op.Operator}">${op.Operator}</option>`).join('');
+      backupSelect.innerHTML = sections.Backups.map(op => `<option value="${op.Operator}">${op.Operator}</option>`).join('');
+      yourOperator.innerHTML = [...mainOps, ...sections.Backups].map(op => `<option value="${op.Operator}">${op.Operator}</option>`).join('');
+    }
+
+    async function populateTargetPlayers() {
+      const response = await fetch(`${SCRIPT_URL}?type=players`);
+      const players = await response.json();
+
+      const select = document.getElementById("targetPlayer");
+      select.innerHTML = '<option value="">Select Player</option>' + players.map(p => `<option value="${p.toLowerCase()}">${p}</option>`).join('');
+
+      // Preload their operators
+      for (const player of players) {
+        const res = await fetch(`${SCRIPT_URL}?sheet=${player}`);
+        const data = await res.json();
+        allPlayersData[player.toLowerCase()] = data.map(op => op.Operator);
+      }
+    }
+
+    function updateTargetOperators() {
+      const targetPlayer = document.getElementById("targetPlayer").value;
+      const ops = allPlayersData[targetPlayer] || [];
+
+      const select = document.getElementById("targetOperator");
+      select.innerHTML = ops.map(op => `<option value="${op}">${op}</option>`).join('');
+    }
+
+    async function swapOperators() {
+      const fromOperator = document.getElementById("mainSelect").value;
+      const toOperator = document.getElementById("backupSelect").value;
+
+      try {
+        await fetch(`${SCRIPT_URL}`, {
+          method: "POST",
+          mode: "no-cors",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            type: "swap",
+            username: loggedInUser.toLowerCase(),
+            fromOperator,
+            toOperator
+          })
+        });
+
+        document.getElementById("swapMessage").style.display = "block";
+        document.getElementById("swapMessage").textContent = "Request sent! Swaps may take about 5-10 mins to change.";
+      } catch (err) {
+        console.error("Swap failed:", err);
+      }
+    }
+
+    async function requestTrade() {
+      const yourOperator = document.getElementById("yourOperator").value;
+      const targetPlayer = document.getElementById("targetPlayer").value.trim();
+      const targetOperator = document.getElementById("targetOperator").value.trim();
+
+      try {
+        await fetch(`${SCRIPT_URL}`, {
+          method: "POST",
+          mode: "no-cors",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            type: "trade",
+            username: loggedInUser.toLowerCase(),
+            yourOperator,
+            targetPlayer,
+            targetOperator
+          })
+        });
+
+        document.getElementById("tradeMessage").style.display = "block";
+        document.getElementById("tradeMessage").textContent = "Trade request sent! You'll be emailed if it's approved.";
+      } catch (err) {
+        console.error("Trade failed:", err);
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem("loggedInUser");
+      window.location.href = "../login.html";
+    }
+
+    window.onload = fetchStats;
+  </script>
+</body>
+</html>
