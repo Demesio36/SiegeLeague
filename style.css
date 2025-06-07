@@ -1,0 +1,135 @@
+/* Global Page Styling */
+body {
+  font-family: Arial, sans-serif;
+  background-color: #111;
+  color: #fff;
+  margin: 0;
+  padding: 50px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Header Section */
+header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+header h1 {
+  font-size: 3rem;
+  font-weight: bold;
+  margin: 0;
+}
+
+/* Subheading for homepage */
+header p {
+  font-size: 1.25rem;
+  margin-top: 10px;
+}
+
+/* Navigation */
+nav ul {
+  list-style-type: none;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+nav ul li {
+  display: inline;
+}
+
+nav ul li a {
+  color: #fff;
+  text-decoration: none;
+  padding: 10px 20px;
+  background-color: #222;
+  border: 1px solid #fff;
+  border-radius: 6px;
+  transition: background-color 0.3s;
+}
+
+nav ul li a:hover {
+  background-color: #444;
+}
+
+/* Player List Section (for homepage) */
+ul#playerList {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+  width: 100%;
+  max-width: 600px;
+}
+
+ul#playerList li a {
+  display: block;
+  text-align: center;
+  font-size: 1.5rem;
+  text-decoration: none;
+  color: #fff;
+  border: 2px solid #fff;
+  border-radius: 8px;
+  padding: 10px;
+  transition: background-color 0.2s, transform 0.2s;
+}
+
+ul#playerList li a:hover {
+  background-color: #333;
+  transform: scale(1.05);
+}
+
+/* Player Page Styles */
+section#playerStats {
+  max-width: 600px;
+  width: 100%;
+  margin-top: 20px;
+}
+
+section#playerStats h2 {
+  font-size: 2rem;
+  margin-bottom: 10px;
+}
+
+section#playerStats p {
+  font-size: 1.2rem;
+}
+
+ul#operatorList {
+  list-style-type: disc;
+  padding-left: 20px;
+}
+form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  max-width: 300px;
+  margin: 0 auto;
+}
+
+input {
+  padding: 10px;
+  width: 100%;
+  font-size: 1rem;
+}
+
+button {
+  padding: 10px 20px;
+  font-size: 1rem;
+  background-color: #222;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #444;
+}
