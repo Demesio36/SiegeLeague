@@ -2,12 +2,15 @@ const fs = require("fs");
 const path = require("path");
 
 exports.handler = async function (event, context) {
+  console.log("HTTP Method:", event.httpMethod);
+
   if (event.httpMethod !== "POST") {
     return {
       statusCode: 405,
       body: "Method Not Allowed",
     };
   }
+
 
   try {
     const newTrade = JSON.parse(event.body);
