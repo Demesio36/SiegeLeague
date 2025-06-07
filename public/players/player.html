@@ -11,7 +11,7 @@
     <h1>Player's Page</h1>
     <a href="../index.html">Back to Player List</a>
     <a href="../homepage.html">Homepage</a>
-    <a href="../public/Trades.html">Trades</a>
+    <a href="../Trades.html">Trades</a>
     <button onclick="logout()">Logout</button>
   </header>
 
@@ -74,7 +74,7 @@
   </main>
 
   <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzAaTxsf7i6yt4ANZB7C65nT0ofGEMhNR5aolVYbd5awnBC6f6Cm5VqPjHOOTFKkaWF0Q/exec"; // Replace with your actual deployed script URL
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzAaTxsf7i6yt4ANZB7C65nT0ofGEMhNR5aolVYbd5awnBC6f6Cm5VqPjHOOTFKkaWF0Q/exec";
 
     let playerData = [];
     const loggedInUser = localStorage.getItem("loggedInUser");
@@ -159,9 +159,6 @@
       const response = await fetch(`${SCRIPT_URL}?type=players`);
       const players = await response.json();
 
-      const select = document.getElementById("targetPlayer");
-      select.innerHTML = '<option value="">Select Player</option>' + players.map(p => `<option value="${p.toLowerCase()}">${p}</option>`).join('');
-
       // Preload their operators
       for (const player of players) {
         const res = await fetch(`${SCRIPT_URL}?sheet=${player}`);
@@ -170,13 +167,6 @@
       }
     }
 
-    function updateTargetOperators() {
-      const targetPlayer = document.getElementById("targetPlayer").value;
-      const ops = allPlayersData[targetPlayer] || [];
-
-      const select = document.getElementById("targetOperator");
-      select.innerHTML = ops.map(op => `<option value="${op}">${op}</option>`).join('');
-    }
 
     async function swapOperators() {
       const fromOperator = document.getElementById("mainSelect").value;
@@ -204,33 +194,7 @@
       }
     }
 
-    async function requestTrade() {
-      const yourOperator = document.getElementById("yourOperator").value;
-      const targetPlayer = document.getElementById("targetPlayer").value.trim();
-      const targetOperator = document.getElementById("targetOperator").value.trim();
-
-      try {
-        await fetch(`${SCRIPT_URL}`, {
-          method: "POST",
-          mode: "no-cors",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            type: "trade",
-            username: loggedInUser.toLowerCase(),
-            yourOperator,
-            targetPlayer,
-            targetOperator
-          })
-        });
-
-        document.getElementById("tradeMessage").style.display = "block";
-        document.getElementById("tradeMessage").textContent = "Trade request sent! You'll be emailed if it's approved.";
-      } catch (err) {
-        console.error("Trade failed:", err);
-      }
-    }
+   
 
     function logout() {
       localStorage.removeItem("loggedInUser");
