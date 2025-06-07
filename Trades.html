@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trade Center</title>
+
+  
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    .trade-section {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+    .player-card {
+      border: 1px solid #ccc;
+      padding: 10px;
+      border-radius: 5px;
+      background-color: #f9f9f9;
+    }
+    .form-section {
+      margin-top: 40px;
+    }
+    .offers-section {
+      margin-top: 40px;
+    }
+    button {
+      margin-top: 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Trade Center</h1>
+<header>
+    <a href="../index.html">Player List</a>
+    <a href="../homepage.html">Homepage</a>
+    <button onclick="logout()">Logout</button>
+  </header>
+   <div class="trade-section" id="playerList"></div>
+
+  <div class="form-section">
+    <h2>Offer a Trade</h2>
+    <form id="tradeForm">
+      <label for="yourOperator">Your Operator:</label>
+      <select id="yourOperator" required></select><br /><br />
+
+      <label for="targetPlayer">Target Player:</label>
+      <select id="targetPlayer" required></select><br /><br />
+
+      <label for="targetOperator">Their Operator:</label>
+      <select id="targetOperator" required></select><br /><br />
+
+      <button type="submit">Send Trade Offer</button>
+    </form>
+    <div id="message"></div>
+  </div>
+
+  <div class="offers-section">
+    <h2>Trade Offers Sent to You</h2>
+    <ul id="incomingTrades"></ul>
+  </div>
+<script src="/config.js"></script>
+  <script>
+    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+    const loggedInUser = localStorage.getItem("loggedInUser") || "TestUser";
+    let allPlayersData = {};
+
+    async function loadPlayers() {
+      const { data, error } = await supabase.from('players').select();
+      if (error) return console.error(error);
+
+      allPlayersData = {};
+      data.forEach(player => {
+        allPlayersData[player.username] = player.operators;
+      });
+      renderPlayerCards();
+      populateTradeDropdowns();
+    }
+
+    async function loadTrades() {
+      const { data, error } = await supabase
+        .from('trades')
+        .select()
+        .order('timestamp', { ascending: false });
+      if (error) return console.error(error);
+      renderIncomingTrades(data);
+    }
+
+    function renderPlayerCards() {
+      const playerList = document.getElementById("playerList");
+      playerList.innerHTML = "";
+      for (const [username, operators] of Object.entries(allPlayersData)) {
+        const card = document.createElement("div");
+        card.className = "player-card";
+        card.innerHTML = `<h3>${username}</h3><ul>${operators.map(op => `<li>${op}</li>`).join("")}</ul>`;
+        playerList.appendChild(card);
+      }
+    }
+
+    function populateTradeDropdowns() {
+      const yourSelect = document.getElementById("yourOperator");
+      const playerSelect = document.getElementById("targetPlayer");
+      const targetSelect = document.getElementById("targetOperator");
+
+      yourSelect.innerHTML = "";
+      playerSelect.innerHTML = "";
+      targetSelect.innerHTML = "";
+
+      if (allPlayersData[loggedInUser]) {
+        allPlayersData[loggedInUser].forEach(op => {
+          yourSelect.innerHTML += `<option value="${op}">${op}</option>`;
+        });
+      }
+
+      for (const player in allPlayersData) {
+        if (player !== loggedInUser) {
+          playerSelect.innerHTML += `<option value="${player}">${player}</option>`;
+        }
+      }
+
+      playerSelect.addEventListener("change", () => {
+        const selectedPlayer = playerSelect.value;
+        targetSelect.innerHTML = "";
+        if (allPlayersData[selectedPlayer]) {
+          allPlayersData[selectedPlayer].forEach(op => {
+            targetSelect.innerHTML += `<option value="${op}">${op}</option>`;
+          });
+        }
+      });
+    }
+
+    document.getElementById("tradeForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const yourOperator = document.getElementById("yourOperator").value;
+      const targetPlayer = document.getElementById("targetPlayer").value;
+      const targetOperator = document.getElementById("targetOperator").value;
+
+      const { error } = await supabase.from('trades').insert([{
+        from_user: loggedInUser,
+        to_user: targetPlayer,
+        offered_operator: yourOperator,
+        requested_operator: targetOperator,
+        accepted: false
+      }]);
+
+      document.getElementById("message").textContent = error ? "Failed to send trade." : "Trade offer submitted.";
+      loadTrades();
+    });
+
+    async function acceptTrade(trade) {
+      const { error: updateErr } = await supabase.from('trades').update({ accepted: true }).eq('id', trade.id);
+      if (updateErr) return console.error(updateErr);
+
+      // Optional: Swap operators in "players" table here
+
+      loadPlayers();
+      loadTrades();
+    }
+
+    function renderIncomingTrades(trades) {
+      const list = document.getElementById("incomingTrades");
+      list.innerHTML = "";
+      const incoming = trades.filter(t => t.to_user === loggedInUser && !t.accepted);
+      incoming.forEach(trade => {
+        const li = document.createElement("li");
+        li.textContent = `${trade.from_user} wants to trade their ${trade.offered_operator} for your ${trade.requested_operator}`;
+
+        const acceptBtn = document.createElement("button");
+        acceptBtn.textContent = "Accept";
+        acceptBtn.onclick = () => acceptTrade(trade);
+
+        const denyBtn = document.createElement("button");
+        denyBtn.textContent = "Deny";
+        denyBtn.onclick = () => list.removeChild(li);
+
+        li.appendChild(acceptBtn);
+        li.appendChild(denyBtn);
+        list.appendChild(li);
+      });
+    }
+
+    loadPlayers();
+    loadTrades();
+  </script>
+</body>
+</html>
