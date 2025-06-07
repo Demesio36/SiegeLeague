@@ -41,7 +41,7 @@
     <a href="../homepage.html">Homepage</a>
     <button onclick="logout()">Logout</button>
   </header>
-  <div class="trade-section" id="playerList"></div>
+   <div class="trade-section" id="playerList"></div>
 
   <div class="form-section">
     <h2>Offer a Trade</h2>
@@ -66,142 +66,129 @@
   </div>
 
   <script>
-  const loggedInUser = localStorage.getItem("loggedInUser");
-  const playersUrl = "/data/players.json";
-  const tradesUrl = "/data/trades.json";
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_KEY;
+    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
-  let allPlayersData = {};
-  let allTrades = [];
+    const loggedInUser = localStorage.getItem("loggedInUser") || "TestUser";
+    let allPlayersData = {};
 
-  async function loadPlayers() {
-    const res = await fetch(playersUrl);
-    allPlayersData = await res.json();
-    renderPlayerCards();
-    populateTradeDropdowns();
-  }
+    async function loadPlayers() {
+      const { data, error } = await supabase.from('players').select();
+      if (error) return console.error(error);
 
-  async function loadTrades() {
-    const res = await fetch(tradesUrl);
-    allTrades = await res.json();
-    renderIncomingTrades();
-  }
-
-  function renderPlayerCards() {
-    const playerList = document.getElementById("playerList");
-    playerList.innerHTML = "";
-    for (const [username, operators] of Object.entries(allPlayersData)) {
-      const card = document.createElement("div");
-      card.className = "player-card";
-      card.innerHTML = `<h3>${username}</h3><ul>${operators.map(op => `<li>${op}</li>`).join("")}</ul>`;
-      playerList.appendChild(card);
+      allPlayersData = {};
+      data.forEach(player => {
+        allPlayersData[player.username] = player.operators;
+      });
+      renderPlayerCards();
+      populateTradeDropdowns();
     }
-  }
 
-  function populateTradeDropdowns() {
-    const yourSelect = document.getElementById("yourOperator");
-    const playerSelect = document.getElementById("targetPlayer");
-    const targetSelect = document.getElementById("targetOperator");
+    async function loadTrades() {
+      const { data, error } = await supabase
+        .from('trades')
+        .select()
+        .order('timestamp', { ascending: false });
+      if (error) return console.error(error);
+      renderIncomingTrades(data);
+    }
 
-    yourSelect.innerHTML = "";
-    playerSelect.innerHTML = "";
-    targetSelect.innerHTML = "";
+    function renderPlayerCards() {
+      const playerList = document.getElementById("playerList");
+      playerList.innerHTML = "";
+      for (const [username, operators] of Object.entries(allPlayersData)) {
+        const card = document.createElement("div");
+        card.className = "player-card";
+        card.innerHTML = `<h3>${username}</h3><ul>${operators.map(op => `<li>${op}</li>`).join("")}</ul>`;
+        playerList.appendChild(card);
+      }
+    }
 
-    if (allPlayersData[loggedInUser]) {
-      allPlayersData[loggedInUser].forEach(op => {
-        const opt = document.createElement("option");
-        opt.value = op;
-        opt.textContent = op;
-        yourSelect.appendChild(opt);
+    function populateTradeDropdowns() {
+      const yourSelect = document.getElementById("yourOperator");
+      const playerSelect = document.getElementById("targetPlayer");
+      const targetSelect = document.getElementById("targetOperator");
+
+      yourSelect.innerHTML = "";
+      playerSelect.innerHTML = "";
+      targetSelect.innerHTML = "";
+
+      if (allPlayersData[loggedInUser]) {
+        allPlayersData[loggedInUser].forEach(op => {
+          yourSelect.innerHTML += `<option value="${op}">${op}</option>`;
+        });
+      }
+
+      for (const player in allPlayersData) {
+        if (player !== loggedInUser) {
+          playerSelect.innerHTML += `<option value="${player}">${player}</option>`;
+        }
+      }
+
+      playerSelect.addEventListener("change", () => {
+        const selectedPlayer = playerSelect.value;
+        targetSelect.innerHTML = "";
+        if (allPlayersData[selectedPlayer]) {
+          allPlayersData[selectedPlayer].forEach(op => {
+            targetSelect.innerHTML += `<option value="${op}">${op}</option>`;
+          });
+        }
       });
     }
 
-    for (const player in allPlayersData) {
-      if (player !== loggedInUser) {
-        const opt = document.createElement("option");
-        opt.value = player;
-        opt.textContent = player;
-        playerSelect.appendChild(opt);
-      }
+    document.getElementById("tradeForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const yourOperator = document.getElementById("yourOperator").value;
+      const targetPlayer = document.getElementById("targetPlayer").value;
+      const targetOperator = document.getElementById("targetOperator").value;
+
+      const { error } = await supabase.from('trades').insert([{
+        from_user: loggedInUser,
+        to_user: targetPlayer,
+        offered_operator: yourOperator,
+        requested_operator: targetOperator,
+        accepted: false
+      }]);
+
+      document.getElementById("message").textContent = error ? "Failed to send trade." : "Trade offer submitted.";
+      loadTrades();
+    });
+
+    async function acceptTrade(trade) {
+      const { error: updateErr } = await supabase.from('trades').update({ accepted: true }).eq('id', trade.id);
+      if (updateErr) return console.error(updateErr);
+
+      // Optional: Swap operators in "players" table here
+
+      loadPlayers();
+      loadTrades();
     }
 
-    playerSelect.addEventListener("change", () => {
-      const selectedPlayer = playerSelect.value;
-      targetSelect.innerHTML = "";
-      if (allPlayersData[selectedPlayer]) {
-        allPlayersData[selectedPlayer].forEach(op => {
-          const opt = document.createElement("option");
-          opt.value = op;
-          opt.textContent = op;
-          targetSelect.appendChild(opt);
-        });
-      }
-    });
-  }
+    function renderIncomingTrades(trades) {
+      const list = document.getElementById("incomingTrades");
+      list.innerHTML = "";
+      const incoming = trades.filter(t => t.to_user === loggedInUser && !t.accepted);
+      incoming.forEach(trade => {
+        const li = document.createElement("li");
+        li.textContent = `${trade.from_user} wants to trade their ${trade.offered_operator} for your ${trade.requested_operator}`;
 
-  document.getElementById("tradeForm").addEventListener("submit", async function (e) {
-    e.preventDefault();
-    const yourOperator = document.getElementById("yourOperator").value;
-    const targetPlayer = document.getElementById("targetPlayer").value;
-    const targetOperator = document.getElementById("targetOperator").value;
+        const acceptBtn = document.createElement("button");
+        acceptBtn.textContent = "Accept";
+        acceptBtn.onclick = () => acceptTrade(trade);
 
-    const isFreeOpTrade = targetPlayer.toLowerCase() === "free ops";
-    const trade = {
-      username: loggedInUser,
-      yourOperator,
-      targetPlayer,
-      targetOperator,
-      accepted: isFreeOpTrade,
-      timestamp: new Date().toISOString()
-    };
+        const denyBtn = document.createElement("button");
+        denyBtn.textContent = "Deny";
+        denyBtn.onclick = () => list.removeChild(li);
 
-    document.getElementById("message").textContent = isFreeOpTrade ?
-      "Free operator acquired immediately!" :
-      "Trade offer submitted.";
+        li.appendChild(acceptBtn);
+        li.appendChild(denyBtn);
+        list.appendChild(li);
+      });
+    }
 
-    // Post trade to Netlify function
-    await fetch("/.netlify/functions/trade-offer", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(trade)
-    });
-
-    await loadTrades();
-  });
-
-  function renderIncomingTrades() {
-    const incoming = allTrades.filter(t => t.targetPlayer === loggedInUser && !t.accepted);
-    const list = document.getElementById("incomingTrades");
-    list.innerHTML = "";
-
-    incoming.forEach(trade => {
-      const li = document.createElement("li");
-      li.textContent = `${trade.username} wants to trade their ${trade.yourOperator} for your ${trade.targetOperator}`;
-
-      const acceptBtn = document.createElement("button");
-      acceptBtn.textContent = "Accept";
-      acceptBtn.onclick = async () => {
-        await fetch("/.netlify/functions/trade-accept", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(trade)
-        });
-        await loadPlayers();
-        await loadTrades();
-      };
-
-      const denyBtn = document.createElement("button");
-      denyBtn.textContent = "Deny";
-      denyBtn.onclick = () => list.removeChild(li);
-
-      li.appendChild(acceptBtn);
-      li.appendChild(denyBtn);
-      list.appendChild(li);
-    });
-  }
-
-  loadPlayers();
-  loadTrades();
-</script>
-
+    loadPlayers();
+    loadTrades();
+  </script>
 </body>
 </html>
