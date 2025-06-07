@@ -1,0 +1,22 @@
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Netlify Functions
+.env
+config.js
+public/config.js
+
+# Build output
+dist/
+build/
+
+# OS and IDE
+.DS_Store
+.vscode/
+.idea/
+*.log
+
+# Optional: ignore Supabase env file if you create one
+.supabase/
