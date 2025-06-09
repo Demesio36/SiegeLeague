@@ -3,42 +3,28 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Siege League - Homepage</title>
+  <title>Siege League Homepage</title>
   <link rel="stylesheet" href="style.css" />
-  <script>
-    const loggedInUser = localStorage.getItem("loggedInUser");
-  </script>
 </head>
+
 <body>
   <!-- Homepage Header -->
   <header>
     <h1>Siege League</h1>
-    <p>Welcome to the League - Select a player to view their stats</p>
+    <p>The Ultimate Competitive Rainbow Six Siege League</p>
   </header>
 
   <!-- Player List -->
   <main>
     <ul id="playerList">
-      <li><a href="players/player.html?sheet=supercheese">Supercheese</a></li>
-      <li><a href="players/player.html?sheet=dgreatoooozzzz">DGreatOOOOZZZZ</a></li>
-      <li><a href="players/player.html?sheet=challito">Challito</a></li>
-      <li><a href="players/player.html?sheet=menudo">Menudo</a></li>
-      <li><a href="players/player.html?sheet=jeff">Jeff</a></li>
-      <li><a href="players/player.html?sheet=mater">Mater</a></li>
-      <li><a href="players/player.html?sheet=harovo">Harovo</a></li>
-      <li><a href="players/player.html?sheet=arby">Arby</a></li>
-      <li><a href="players/player.html?sheet=redbanana">RedBanana</a></li>
-      <li><a href="players/player.html?sheet=spartacus">Spartacus</a></li>
+      <!-- List of options with links to their personal pages -->
+      <li><a href="./playerlist.html">Player List</a></li>
+      <li><a href="./gentlemanleague.html">The Gentleman League</a></li>
+      <li><a href="matchups/AllWeeks.html">Round Robin Tournament</a></li>
+      <li><a href="players/allplayers.html">All Players Stats</a></li>
     </ul>
   </main>
 
-  <button onclick="logout()">Logout</button>
-
-  <script>
-    function logout() {
-      localStorage.removeItem("loggedInUser");
-      window.location.href = "login.html";
-    }
-  </script>
+  <!-- Note: Styling is linked via external stylesheet -->
 </body>
 </html>
