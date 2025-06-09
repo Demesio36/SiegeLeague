@@ -126,7 +126,7 @@
       const headshots = Math.round(parseFloat(stats["Headshot %"]) || 0);
       const assists = parseFloat(stats.Assist) || 0;
       const aces = parseFloat(stats.Aces) || 0;
-      const rounds = parsFloat(stats["Rounds Played"]) || 0;
+      const rounds = parseFloat(stats["Rounds Played"]) || 0;
       const teamKills = parseFloat(stats["Team Kills"]) || 0;
       const totalPoints = Math.round((kd * 100) + (headshots * 10) + (assists*5) + (aces * 100) - (teamKills * 100));
 
