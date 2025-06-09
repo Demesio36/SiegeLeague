@@ -3,14 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>All Player Stats</title>
+  <title>The Gentleman League</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       padding: 20px;
+    
     }
     h2 {
       margin-top: 40px;
+      border-bottom: 1px solid #ccc;
     }
     table {
       width: 100%;
@@ -19,94 +21,85 @@
     }
     th, td {
       border: 1px solid #ccc;
-      padding: 8px;
+      padding: 6px 10px;
       text-align: center;
     }
     th {
-      background-color: #f2f2f2;
-    }
-    .player-section {
-      margin-bottom: 60px;
+      background-color: #f0f0f0;
     }
   </style>
 </head>
 <body>
-  <h1>The Gentleman League</h1>
-  <div id="playersContainer"></div>
+  <h1>All Week Matchups</h1>
+  <div id="weeksContainer"></div>
 
   <script>
-    const sheetUrl = 'https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/gviz/tq?tqx=out:csv';
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbwaaBvqcLMVKMrhpdPIa_-wmHqdfOEsR4zkkJdYipJ85AM7N8f3SJjAixeKT5knrw49Zg/exec?type=weeks';
 
-    async function loadAndDisplayStats() {
-      const response = await fetch(sheetUrl);
-      const csv = await response.text();
-      const rows = csv.split('\n').map(r => r.split(','));
-      const headers = rows[0];
-      const dataRows = rows.slice(1).filter(row => row.length > 1);
+    function createTable( weekname, weeks) {
+        const urlParams = new URLSearchParams(window.location.search);
+      const table = document.createElement("table");
+      const thead = document.createElement("thead");
+      const tbody = document.createElement("tbody");
+      const Weeks = urlParams.get('sheetW') || 'Week 1';
 
-      const players = {};
+      const headersW = [
+        "Player 1", "Total points", "Chance of Winning", "Vs", "Payer 2",
+        "Total Points", "Chance of Winning"
+      ];
 
-      dataRows.forEach(row => {
-        const player = row[0];
-        const stats = Object.fromEntries(headers.map((h, i) => [h, row[i]]));
-        if (!players[player]) players[player] = [];
-        players[player].push(stats);
-      });
+      thead.innerHTML = `<tr>${headersW.map(h => `<th>${h}</th>`).join("")}</tr>`;
+      weeks.forEach(row => {
+        const player1 = row["Player 1"] || "";
+        const player2 = row["Player 2"] || "";
+        const TotalPoints1 = parseFloat(row["Total Points 1"]) || 0;
+        const TotalPoints2 = parseFloat(row["Total Points 2"]) || 0;
+        const chance1 = ((parseFloat(row["Chance of Winning 1"]) || 0) * 100).toFixed(2) + "%";
+        const chance2 = ((parseFloat(row["Chance of Winning 2"]) || 0) * 100).toFixed(2) + "%";
+        const vs = row["vs"] || "";
 
-      const container = document.getElementById("playersContainer");
-      container.innerHTML = '';
-
-      Object.entries(players).forEach(([player, statsArray]) => {
-        const section = document.createElement('div');
-        section.className = 'player-section';
-
-        section.innerHTML = `<h2>${player}</h2>${createTable(statsArray)}`;
-        container.appendChild(section);
-      });
-    }
-
-    function createTable(statsArray) {
-      const headers = ['Operator', 'Kills', 'Deaths', 'K/D', 'Headshot %', 'Assist', 'Aces', 'Team Kills', 'Points', 'Rounds Played'];
-      const rows = statsArray.map(stats => {
-        const kills = parseFloat(stats.Kills) || 0;
-        const deaths = parseFloat(stats.Deaths) || 0;
-        const kd = deaths === 0 ? kills : (kills / deaths);
-        const hs = Math.round(parseFloat(stats["Headshot %"]) || 0);
-        const assists = parseFloat(stats.Assist) || 0;
-        const aces = parseFloat(stats.Aces) || 0;
-        const rounds = parseFloat(stats["Rounds Played"]) || 0;
-        const tk = parseFloat(stats["Team Kills"]) || 0;
-        const points = Math.round((kd * 100) + (hs * 10) + (assists * 5) + (aces * 100) - (tk * 100));
-
-        return `
+        tbody.innerHTML += `
           <tr>
-            <td>${stats.Operator}</td>
-            <td>${kills}</td>
-            <td>${deaths}</td>
-            <td>${kd.toFixed(2)}</td>
-            <td>${hs}</td>
-            <td>${assists}</td>
-            <td>${aces}</td>
-            <td>${tk}</td>
-            <td>${points}</td>
-            <td>${rounds}</td>
+            <td>${player1}</td>
+            <td>${TotalPoints1}</td>
+            <td>${chance1}</td>
+            <td>${vs}</td>
+            <td>${player2}</td>
+            <td>${TotalPoints2}</td>
+            <td>${chance2}</td>
           </tr>
         `;
-      }).join('');
+      });
 
-      return `
-        <table>
-          <thead>
-            <tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>
-          </thead>
-          <tbody>
-            ${rows}
-          </tbody>
-        </table>
-      `;
+      table.appendChild(thead);
+      table.appendChild(tbody);
+
+      const section = document.createElement("section");
+      section.innerHTML = `<h2>${weekname}</h2>`;
+      section.appendChild(table);
+
+      return section;
     }
 
-    loadAndDisplayStats();
+    async function loadAllWeeks() {
+      try {
+        const res = await fetch(scriptURL);
+        const dataW = await res.json();
+
+        const container = document.getElementById("weeksContainer");
+        container.innerHTML = "";
+
+        for (const weeks in dataW) {
+          const section = createTable(weeks, dataW[weeks]);
+          container.appendChild(section);
+        }
+      } catch (err) {
+        console.error("Failed to load Weeks:", err);
+        document.getElementById("weeksContainer").textContent = "Failed to load weeks.";
+      }
+    }
+
+    loadAllWeeks();
   </script>
 </body>
 </html>
