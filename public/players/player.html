@@ -12,6 +12,7 @@
     <a href="../index.html">Back to Player List</a>
     <a href="../homepage.html">Homepage</a>
     <a href="../Trades.html">Trades</a>
+    <a href="../allPlayers.html">All Players</a>
     <button onclick="logout()">Logout</button>
   </header>
 
@@ -20,7 +21,7 @@
       <h2>Attackers</h2>
       <table id="attackers">
         <thead>
-          <tr><th>Operator</th><th>Kills</th><th>Deaths</th><th>K/D</th><th>HS%</th><th>Assists</th><th>Aces</th><th>Team Kills</th><th>Total Points</th><th>Rounds Played</th></tr>
+          <tr><th>Operator</th><th>Kills</th><th>Deaths</th><th>K/D</th><th>HS</th><th>Assists</th><th>Aces</th><th>Team Kills</th><th>Total Points</th><th>Rounds Played</th></tr>
         </thead>
         <tbody></tbody>
       </table>
@@ -30,7 +31,7 @@
       <h2>Defenders</h2>
       <table id="defenders">
         <thead>
-          <tr><th>Operator</th><th>Kills</th><th>Deaths</th><th>K/D</th><th>HS%</th><th>Assists</th><th>Aces</th><th>Team Kills</th><th>Total Points</th><th>Rounds Played</th></tr>
+          <tr><th>Operator</th><th>Kills</th><th>Deaths</th><th>K/D</th><th>HS</th><th>Assists</th><th>Aces</th><th>Team Kills</th><th>Total Points</th><th>Rounds Played</th></tr>
         </thead>
         <tbody></tbody>
       </table>
@@ -40,7 +41,7 @@
       <h2>Backups</h2>
       <table id="backups">
         <thead>
-          <tr><th>Operator</th><th>Kills</th><th>Deaths</th><th>K/D</th><th>HS%</th><th>Assists</th><th>Aces</th><th>Team Kills</th><th>Total Points</th><th>Rounds Played</th></tr>
+          <tr><th>Operator</th><th>Kills</th><th>Deaths</th><th>K/D</th><th>HS</th><th>Assists</th><th>Aces</th><th>Team Kills</th><th>Total Points</th><th>Rounds Played</th></tr>
         </thead>
         <tbody></tbody>
       </table>
@@ -74,7 +75,7 @@
   </main>
 
   <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzAaTxsf7i6yt4ANZB7C65nT0ofGEMhNR5aolVYbd5awnBC6f6Cm5VqPjHOOTFKkaWF0Q/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyklmi88va4Gml4l1D7jyfh565KYs4WGZLTYUhfWDYi-Z_2eXM6kg9jTLTRkwYIDePb7g/exec";
 
     let playerData = [];
     const loggedInUser = localStorage.getItem("loggedInUser");

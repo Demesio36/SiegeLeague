@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>All Player Stats</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    h2 {
+      margin-top: 40px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 40px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    .player-section {
+      margin-bottom: 60px;
+    }
+  </style>
+</head>
+<body>
+  <h1>All Player Stats</h1>
+  <div id="playersContainer"></div>
+
+  <script>
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbyklmi88va4Gml4l1D7jyfh565KYs4WGZLTYUhfWDYi-Z_2eXM6kg9jTLTRkwYIDePb7g/exec';
+
+    async function loadAllStats() {
+      const res = await fetch(scriptURL);
+      const data = await res.json();
+
+      const container = document.getElementById("playersContainer");
+      container.innerHTML = "";
+
+      for (const [player, statsArray] of Object.entries(data)) {
+        const section = document.createElement("div");
+        section.className = "player-section";
+
+        section.innerHTML = `<h2>${player}</h2>${createTable(statsArray)}`;
+        container.appendChild(section);
+      }
+    }
+
+    function createTable(statsArray) {
+      const headers = ['Operator', 'Kills', 'Deaths', 'K/D', 'Headshot', 'Assist', 'Aces', 'Team Kills', 'Points', 'Rounds Played'];
+      const rows = statsArray.map(stats => {
+        const kills = parseFloat(stats.Kills) || 0;
+        const deaths = parseFloat(stats.Deaths) || 0;
+        const kd = deaths === 0 ? kills : (kills / deaths);
+        const hs = Math.round(parseFloat(stats["Headshot %"]) || 0);
+        const assists = parseFloat(stats.Assist) || 0;
+        const aces = parseFloat(stats.Aces) || 0;
+        const rounds = parseFloat(stats["Rounds Played"]) || 0;
+        const tk = parseFloat(stats["Team Kills"]) || 0;
+        const points = Math.round((kd * 100) + (hs * 10) + (assists * 5) + (aces * 100) - (tk * 100));
+
+        return `
+          <tr>
+            <td>${stats.Operator}</td>
+            <td>${kills}</td>
+            <td>${deaths}</td>
+            <td>${kd.toFixed(2)}</td>
+            <td>${hs}</td>
+            <td>${assists}</td>
+            <td>${aces}</td>
+            <td>${tk}</td>
+            <td>${points}</td>
+            <td>${rounds}</td>
+          </tr>`;
+      }).join("");
+
+      return `
+        <table>
+          <thead>
+            <tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>
+          </thead>
+          <tbody>
+            ${rows}
+          </tbody>
+        </table>`;
+    }
+
+    loadAllStats();
+  </script>
+</body>
+</html>
