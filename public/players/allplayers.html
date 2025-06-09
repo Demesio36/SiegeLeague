@@ -8,9 +8,11 @@
     body {
       font-family: Arial, sans-serif;
       padding: 20px;
+    
     }
     h2 {
       margin-top: 40px;
+      border-bottom: 1px solid #ccc;
     }
     table {
       width: 100%;
@@ -19,77 +21,85 @@
     }
     th, td {
       border: 1px solid #ccc;
-      padding: 8px;
+      padding: 6px 10px;
       text-align: center;
     }
     th {
-      background-color: #f2f2f2;
-    }
-    .player-section {
-      margin-bottom: 60px;
+      background-color: #f0f0f0;
     }
   </style>
 </head>
 <body>
   <h1>All Player Stats</h1>
-  <div id="playersContainer"></div>
+  <div id="statsContainer"></div>
 
   <script>
-    const scriptURL = 'https://script.google.com/macros/s/AKfycbyklmi88va4Gml4l1D7jyfh565KYs4WGZLTYUhfWDYi-Z_2eXM6kg9jTLTRkwYIDePb7g/exec';
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbyklmi88va4Gml4l1D7jyfh565KYs4WGZLTYUhfWDYi-Z_2eXM6kg9jTLTRkwYIDePb7g/exec?type=all';
 
-    async function loadAllStats() {
-      const res = await fetch(scriptURL);
-      const data = await res.json();
+    function createTable(player, stats) {
+      const table = document.createElement("table");
+      const thead = document.createElement("thead");
+      const tbody = document.createElement("tbody");
 
-      const container = document.getElementById("playersContainer");
-      container.innerHTML = "";
+      const headers = [
+        "Operator", "Kills", "Deaths", "K/D", "Headshot %",
+        "Assist", "Aces", "Team Kills", "Total Points", "Rounds Played"
+      ];
 
-      for (const [player, statsArray] of Object.entries(data)) {
-        const section = document.createElement("div");
-        section.className = "player-section";
-
-        section.innerHTML = `<h2>${player}</h2>${createTable(statsArray)}`;
-        container.appendChild(section);
-      }
-    }
-
-    function createTable(statsArray) {
-      const headers = ['Operator', 'Kills', 'Deaths', 'K/D', 'Headshot', 'Assist', 'Aces', 'Team Kills', 'Points', 'Rounds Played'];
-      const rows = statsArray.map(stats => {
-        const kills = parseFloat(stats.Kills) || 0;
-        const deaths = parseFloat(stats.Deaths) || 0;
+      thead.innerHTML = `<tr>${headers.map(h => `<th>${h}</th>`).join("")}</tr>`;
+      stats.forEach(row => {
+        const kills = parseFloat(row.Kills) || 0;
+        const deaths = parseFloat(row.Deaths) || 0;
         const kd = deaths === 0 ? kills : (kills / deaths);
-        const hs = Math.round(parseFloat(stats["Headshot %"]) || 0);
-        const assists = parseFloat(stats.Assist) || 0;
-        const aces = parseFloat(stats.Aces) || 0;
-        const rounds = parseFloat(stats["Rounds Played"]) || 0;
-        const tk = parseFloat(stats["Team Kills"]) || 0;
-        const points = Math.round((kd * 100) + (hs * 10) + (assists * 5) + (aces * 100) - (tk * 100));
+        const headshots = Math.round(parseFloat(row["Headshot %"]) || 0);
+        const assists = parseFloat(row.Assist) || 0;
+        const aces = parseFloat(row.Aces) || 0;
+        const rounds = parseFloat(row["Rounds Played"]) || 0;
+        const teamKills = parseFloat(row["Team Kills"]) || 0;
+        const totalPoints = Math.round((kd * 100) + (headshots * 10) + (assists * 5) + (aces * 100) - (teamKills * 100));
 
-        return `
+        tbody.innerHTML += `
           <tr>
-            <td>${stats.Operator}</td>
+            <td>${row.Operator}</td>
             <td>${kills}</td>
             <td>${deaths}</td>
             <td>${kd.toFixed(2)}</td>
-            <td>${hs}</td>
+            <td>${headshots}</td>
             <td>${assists}</td>
             <td>${aces}</td>
-            <td>${tk}</td>
-            <td>${points}</td>
+            <td>${teamKills}</td>
+            <td>${totalPoints}</td>
             <td>${rounds}</td>
-          </tr>`;
-      }).join("");
+          </tr>
+        `;
+      });
 
-      return `
-        <table>
-          <thead>
-            <tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>
-          </thead>
-          <tbody>
-            ${rows}
-          </tbody>
-        </table>`;
+      table.appendChild(thead);
+      table.appendChild(tbody);
+
+      const section = document.createElement("section");
+      section.innerHTML = `<h2>${player}</h2>`;
+      section.appendChild(table);
+
+      return section;
+    }
+
+    async function loadAllStats() {
+      try {
+        const res = await fetch(scriptURL);
+        const data = await res.json();
+
+        const container = document.getElementById("statsContainer");
+        container.innerHTML = "";
+
+        for (const player in data) {
+          const section = createTable(player, data[player]);
+          container.appendChild(section);
+        }
+      } catch (err) {
+        console.error("Failed to load stats:", err);
+        document.getElementById("statsContainer").textContent = "Failed to load stats.";
+      }
     }
 
     loadAllStats();
