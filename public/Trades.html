@@ -59,7 +59,7 @@
     </form>
     <div id="message"></div>
   </div>
-
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <div class="offers-section">
     <h2>Trade Offers Sent to You</h2>
     <ul id="incomingTrades"></ul>
@@ -72,8 +72,9 @@
     const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
     const loggedInUser = localStorage.getItem("loggedInUser") || "TestUser";
+    
     let allPlayersData = {};
-
+    
     async function loadPlayers() {
       const { data, error } = await supabase.from('players').select();
       if (error) return console.error(error);
