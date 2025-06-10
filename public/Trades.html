@@ -62,14 +62,14 @@
     <ul id="incomingTrades"></ul>
   </div>
 
- <!-- ✅ Load Supabase library -->
+<!-- Load Supabase SDK -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 
-<!-- ✅ Initialize and use Supabase after DOM is loaded -->
+<!-- Initialize and use Supabase AFTER it's loaded -->
 <script>
-  document.addEventListener("DOMContentLoaded", () => {
+  document.addEventListener("DOMContentLoaded", async () => {
     const supabaseUrl = 'https://exrzjcfxgnjffuyhqggx.supabase.co';
-    const supabaseKey = 'YOUR_SUPABASE_ANON_KEY';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV4cnpqY2Z4Z25qZmZ1eWhxZ2d4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkzMjMwNDEsImV4cCI6MjA2NDg5OTA0MX0.2CIwH4PsQeeTEdNX3v9xpLqEb7Yj1JxM_rQ-WMCN-oY';
     const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
     const loggedInUser = localStorage.getItem("loggedInUser") || "TestUser";
@@ -77,7 +77,7 @@
 
     async function loadPlayers() {
       const { data, error } = await supabase.from('players').select();
-      if (error) return console.error(error);
+      if (error) return console.error("Error loading players:", error);
       allPlayersData = {};
       data.forEach(player => {
         allPlayersData[player.username] = player.operators;
@@ -88,7 +88,7 @@
 
     async function loadTrades() {
       const { data, error } = await supabase.from('trades').select().order('timestamp', { ascending: false });
-      if (error) return console.error(error);
+      if (error) return console.error("Error loading trades:", error);
       renderIncomingTrades(data);
     }
 
@@ -179,9 +179,11 @@
       });
     }
 
+    // Start
     loadPlayers();
     loadTrades();
   });
-  </script>
+</script>
+
 </body>
 </html>
