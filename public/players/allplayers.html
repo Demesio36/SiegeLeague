@@ -61,7 +61,7 @@
         const aces = parseFloat(row.Aces) || 0;
         const rounds = parseFloat(row["Rounds Played"]) || 0;
         const teamKills = parseFloat(row["Team Kills"]) || 0;
-        const totalPoints = Math.round((kd * 100) + (headshots * 10) + (assists * 5) + (aces * 100) - (teamKills * 100));
+        const totalPoints = parseFloat(row["Total Points"]);
 
         tbody.innerHTML += `
           <tr>
