@@ -2,24 +2,33 @@
 
 import fetch from 'node-fetch';
 
-export default async (req, res) => {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+export const handler = async (event) => {
+  if (event.httpMethod !== 'POST') {
+    return {
+      statusCode: 405,
+      body: JSON.stringify({ error: 'Method not allowed' }),
+    };
   }
 
   try {
-    const response = await fetch('https://script.google.com/macros/s/YOUR_DEPLOYED_SCRIPT_ID/exec', {
+    const response = await fetch('https://script.google.com/macros/s/AKfycbxK9Q_SgyqXMESycU3WL0XTHzU4WSF5T5hBDgl7Xji5S0ZqVg-9e6FS9DMTPm_G4CO_5Q/exec', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(req.body)
+      body: event.body
     });
 
     const result = await response.text();
-    return res.status(200).send(result);
+    return {
+      statusCode: 200,
+      body: result,
+    };
   } catch (err) {
     console.error('Proxy Error:', err);
-    return res.status(500).json({ error: 'Failed to proxy request' });
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: 'Failed to proxy request' }),
+    };
   }
 };
