@@ -3,35 +3,162 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Select a Player</title>
+  <title>Trade Center</title>
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; }
-    label, select, button { display: block; margin: 15px 0; }
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    .trade-section {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+    .player-card {
+      border: 1px solid #ccc;
+      padding: 10px;
+      border-radius: 5px;
+      background-color: #f9f9f9;
+    }
+    .form-section, .offers-section {
+      margin-top: 40px;
+    }
+    button {
+      margin-top: 10px;
+    }
   </style>
 </head>
 <body>
-  <h1>Select a Player to View Their Operators</h1>
-  <label for="playerDropdown">Choose a Player:</label>
-  <select id="playerDropdown"></select>
-  <div id="message"></div>
+  <h1>Trade Center</h1>
+  <header>
+    <a href="../index.html">Player List</a>
+    <a href="../homepage.html">Homepage</a>
+    <button onclick="logout()">Logout</button>
+  </header>
+
+  <div class="trade-section" id="playerList"></div>
+
+  <div class="form-section">
+    <h2>Offer a Trade</h2>
+    <form id="tradeForm">
+      <label for="yourOperator">Your Operator:</label>
+      <select id="yourOperator" required></select><br /><br />
+
+      <label for="targetPlayer">Target Player:</label>
+      <select id="targetPlayer" required></select><br /><br />
+
+      <label for="targetOperator">Their Operator:</label>
+      <select id="targetOperator" required></select><br /><br />
+
+      <button type="submit">Send Trade Offer</button>
+    </form>
+    <div id="message"></div>
+  </div>
 
   <script>
-    const scriptURL = "https://script.google.com/macros/s/AKfycbwAJiid-cXheV3sE317rJaw5e5b9pTzQNZYXtUVn6xN_cIkQ8J3T-9sJ8E-NlOwpVz8ng/exec"; // Replace with your Apps Script URL
+    const scriptURL = "https://script.google.com/macros/s/AKfycbw69zPnajyAi9Loaocf0iHbdxDsJxoluhGyLOVSektihcW1XqEyWZjSfC7zx7W9kk6lwg/exec";
+    const loggedInUser = localStorage.getItem("loggedInUser") || "TestUser";
+    let allPlayersData = {};
 
-    async function fetchPlayers() {
+    async function loadPlayers() {
       try {
         const res = await fetch(`${scriptURL}?type=username`);
-        const players = await res.json();
-        const dropdown = document.getElementById("playerDropdown");
+        const usernames = await res.json();
 
-        dropdown.innerHTML = players.map(p => `<option value="${p}">${p}</option>`).join("");
-      } catch (error) {
-        console.error("Error loading players:", error);
-        document.getElementById("message").textContent = "Failed to load players.";
+        const playerPromises = usernames.map(async (user) => {
+          const userRes = await fetch(`${scriptURL}?sheet=${user}`);
+          const ops = await userRes.json();
+          return { username: user, operators: ops.map(op => op.Operator) };
+        });
+
+        const playerData = await Promise.all(playerPromises);
+        allPlayersData = {};
+        playerData.forEach(p => allPlayersData[p.username] = p.operators);
+
+        renderPlayerCards();
+        populateTradeDropdowns();
+      } catch (err) {
+        console.error("Error loading players:", err);
       }
     }
 
-    fetchPlayers();
+    function renderPlayerCards() {
+      const playerList = document.getElementById("playerList");
+      playerList.innerHTML = "";
+      for (const [username, operators] of Object.entries(allPlayersData)) {
+        const card = document.createElement("div");
+        card.className = "player-card";
+        card.innerHTML = `<h3>${username}</h3><ul>${operators.map(op => `<li>${op}</li>`).join("")}</ul>`;
+        playerList.appendChild(card);
+      }
+    }
+
+    function populateTradeDropdowns() {
+      const yourSelect = document.getElementById("yourOperator");
+      const playerSelect = document.getElementById("targetPlayer");
+      const targetSelect = document.getElementById("targetOperator");
+
+      yourSelect.innerHTML = "";
+      playerSelect.innerHTML = "";
+      targetSelect.innerHTML = "";
+
+      if (allPlayersData[loggedInUser]) {
+        allPlayersData[loggedInUser].forEach(op => {
+          yourSelect.innerHTML += `<option value="${op}">${op}</option>`;
+        });
+      }
+
+      for (const player in allPlayersData) {
+        if (player !== loggedInUser) {
+          playerSelect.innerHTML += `<option value="${player}">${player}</option>`;
+        }
+      }
+
+      playerSelect.addEventListener("change", () => {
+        const selectedPlayer = playerSelect.value;
+        targetSelect.innerHTML = "";
+        if (allPlayersData[selectedPlayer]) {
+          allPlayersData[selectedPlayer].forEach(op => {
+            targetSelect.innerHTML += `<option value="${op}">${op}</option>`;
+          });
+        }
+      });
+    }
+
+    document.getElementById("tradeForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const yourOperator = document.getElementById("yourOperator").value;
+      const targetPlayer = document.getElementById("targetPlayer").value;
+      const targetOperator = document.getElementById("targetOperator").value;
+
+      const payload = {
+        type: "tradeRequest",
+        username: loggedInUser,
+        yourOperator,
+        targetPlayer,
+        targetOperator
+      };
+
+      try {
+        const res = await fetch(scriptURL, {
+          method: "POST",
+          body: JSON.stringify(payload),
+          headers: { "Content-Type": "application/json" }
+        });
+        const result = await res.text();
+        document.getElementById("message").textContent = result;
+      } catch (err) {
+        console.error("Failed to submit trade request:", err);
+        document.getElementById("message").textContent = "Failed to send trade.";
+      }
+    });
+
+    function logout() {
+      localStorage.removeItem("loggedInUser");
+      window.location.href = "../login.html";
+    }
+
+    loadPlayers();
   </script>
 </body>
 </html>
