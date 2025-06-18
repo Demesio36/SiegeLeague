@@ -101,7 +101,8 @@
   </main>
 
   <script>
-    const SCRIPT_URL = process.env.SCRIPT_URL;
+        const proxyURL = '/.netlify/functions/proxy-trade';
+    const res = await fetch('/.netlify/functions/proxy-trade?type=username');
 
     let playerData = [];
     const loggedInUser = localStorage.getItem("loggedInUser");

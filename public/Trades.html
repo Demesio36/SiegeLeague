@@ -67,8 +67,8 @@
   </div>
 
   <script>
-    const scriptURL = process.env.SCRIPT_URL;
     const proxyURL = '/.netlify/functions/proxy-trade';
+    const res = await fetch('/.netlify/functions/proxy-trade?type=username');
 
     let loggedInUser = localStorage.getItem("loggedInUser") || null;
     if (!loggedInUser) {
@@ -80,10 +80,10 @@
     let allPlayersData = {};
 
     async function loadPlayers() {
-      const res = await fetch(`${scriptURL}?type=username`);
+      const res = await fetch(`${SCRIPT_URL}?type=username`);
       const usernames = await res.json();
 
-      const operatorsRes = await fetch(`${scriptURL}?type=all`);
+      const operatorsRes = await fetch(`${SCRIPT_URL}?type=all`);
       const allStats = await operatorsRes.json();
 
       usernames.forEach(username => {
@@ -169,7 +169,7 @@
 
     async function loadTrades() {
       try {
-        const res = await fetch(`${scriptURL}?type=trades`);
+        const res = await fetch(`${SCRIPT_URL}?type=trades`);
         const trades = await res.json();
 
         const yourList = document.getElementById("yourRequests");

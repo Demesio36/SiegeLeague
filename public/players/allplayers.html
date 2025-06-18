@@ -39,7 +39,8 @@
   <div id="statsContainer"></div>
 
   <script>
-    const scriptURL = `${process.env.SCRIPT_URL}?type=username`;
+   const proxyURL = '/.netlify/functions/proxy-trade';
+    const res = await fetch('/.netlify/functions/proxy-trade?type=username');
 
     function createTable(player, stats) {
       const table = document.createElement("table");
@@ -91,7 +92,7 @@
 
     async function loadAllStats() {
       try {
-        const res = await fetch(scriptURL);
+        const res = await fetch(SCRIPT_URL);
         const data = await res.json();
 
         const container = document.getElementById("statsContainer");
