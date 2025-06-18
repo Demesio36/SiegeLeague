@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Trade Center</title>
   <style>
     body {
@@ -20,7 +20,7 @@
       border-radius: 5px;
       background-color: #f9f9f9;
     }
-    .form-section, .offers-section {
+    .form-section, .offers-section, .requests-section {
       margin-top: 40px;
     }
     button {
@@ -29,6 +29,7 @@
   </style>
 </head>
 <body>
+
   <h1>Trade Center</h1>
   <header>
     <a href="../index.html">Player List</a>
@@ -55,10 +56,21 @@
     <div id="message"></div>
   </div>
 
-  <script>
-    const scriptURL = "https://script.google.com/macros/s/AKfycbxK9Q_SgyqXMESycU3WL0XTHzU4WSF5T5hBDgl7Xji5S0ZqVg-9e6FS9DMTPm_G4CO_5Q/exec";
+  <div class="requests-section">
+    <h2>Your Requests</h2>
+    <ul id="yourRequests"></ul>
+  </div>
 
-    let loggedInUser = localStorage.getItem("loggedInUser");
+  <div class="offers-section">
+    <h2>Offers Sent to You</h2>
+    <ul id="yourOffers"></ul>
+  </div>
+
+  <script>
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbxK9Q_SgyqXMESycU3WL0XTHzU4WSF5T5hBDgl7Xji5S0ZqVg-9e6FS9DMTPm_G4CO_5Q/exec';
+    const proxyURL = '/.netlify/functions/proxy-trade';
+
+    let loggedInUser = localStorage.getItem("loggedInUser") || null;
     if (!loggedInUser) {
       alert("You must be logged in to trade.");
       window.location.href = "../login.html";
@@ -68,25 +80,19 @@
     let allPlayersData = {};
 
     async function loadPlayers() {
-      try {
-        const res = await fetch(`${scriptURL}?type=username`);
-        const usernames = await res.json();
+      const res = await fetch(`${scriptURL}?type=username`);
+      const usernames = await res.json();
 
-        const playerPromises = usernames.map(async (user) => {
-          const userRes = await fetch(`${scriptURL}?sheet=${user}`);
-          const ops = await userRes.json();
-          return { username: user.toLowerCase(), operators: ops.map(op => op.Operator) };
-        });
+      const operatorsRes = await fetch(`${scriptURL}?type=all`);
+      const allStats = await operatorsRes.json();
 
-        const playerData = await Promise.all(playerPromises);
-        allPlayersData = {};
-        playerData.forEach(p => allPlayersData[p.username] = p.operators);
+      usernames.forEach(username => {
+        const ops = allStats[username] ? allStats[username].map(row => row.Operator) : [];
+        allPlayersData[username.toLowerCase()] = ops;
+      });
 
-        renderPlayerCards();
-        populateTradeDropdowns();
-      } catch (err) {
-        console.error("Error loading players:", err);
-      }
+      renderPlayerCards();
+      populateTradeDropdowns();
     }
 
     function renderPlayerCards() {
@@ -147,25 +153,71 @@
       };
 
       try {
-        const res = await fetch("/.netlify/functions/proxy-trade", {
+        const res = await fetch(proxyURL, {
           method: "POST",
-          body: JSON.stringify(payload),
-          headers: { "Content-Type": "application/json" }
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
         });
-        const result = await res.text();
-        document.getElementById("message").textContent = result;
+        const msg = await res.text();
+        document.getElementById("message").textContent = msg;
+        loadTrades();
       } catch (err) {
         console.error("Failed to submit trade request:", err);
-        document.getElementById("message").textContent = "Failed to send trade.";
+        document.getElementById("message").textContent = "Failed to submit trade.";
       }
     });
+
+    async function loadTrades() {
+      try {
+        const res = await fetch(`${scriptURL}?type=trades`);
+        const trades = await res.json();
+
+        const yourList = document.getElementById("yourRequests");
+        const offersList = document.getElementById("yourOffers");
+        yourList.innerHTML = "";
+        offersList.innerHTML = "";
+
+        trades.forEach(trade => {
+          const tradeText = `${trade.username} wants to trade ${trade.yourOperator} for ${trade.targetOperator} from ${trade.targetPlayer} — [${trade.status}]`;
+
+          if (trade.username.toLowerCase() === loggedInUser) {
+            const li = document.createElement("li");
+            li.textContent = tradeText;
+            yourList.appendChild(li);
+          } else if (trade.targetPlayer.toLowerCase() === loggedInUser) {
+            const li = document.createElement("li");
+            li.textContent = tradeText;
+
+            const acceptBtn = document.createElement("button");
+            acceptBtn.textContent = "Accept";
+            acceptBtn.onclick = () => {
+              alert("This would notify admin to manually process the trade.");
+              li.remove();
+            };
+
+            const denyBtn = document.createElement("button");
+            denyBtn.textContent = "Decline";
+            denyBtn.onclick = () => li.remove();
+
+            li.appendChild(acceptBtn);
+            li.appendChild(denyBtn);
+            offersList.appendChild(li);
+          }
+        });
+      } catch (err) {
+        console.error("Failed to load trades:", err);
+      }
+    }
 
     function logout() {
       localStorage.removeItem("loggedInUser");
       window.location.href = "../login.html";
     }
 
-    loadPlayers();
+    window.onload = () => {
+      loadPlayers();
+      loadTrades();
+    };
   </script>
 </body>
 </html>
