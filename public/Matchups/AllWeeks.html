@@ -39,7 +39,7 @@
   <div id="weeksContainer"></div>
 
   <script>
-    const scriptURL = 'https://script.google.com/macros/s/AKfycbz4OqaNzVHamo4hp5P0h4tNKeCIIDgokzagVGCJv-nNbl62i1-4U2b2dm98L7uFjeOX4g/exec?type=weeks';
+    const scriptURL = `${process.env.SCRIPT_URL}?type=weeks`;
 
     function createTable( weekname, weeks) {
         const urlParams = new URLSearchParams(window.location.search);

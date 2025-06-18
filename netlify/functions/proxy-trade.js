@@ -10,8 +10,17 @@ export const handler = async (event) => {
     };
   }
 
+  const SCRIPT_URL = process.env.SCRIPT_URL;
+
+  if (!SCRIPT_URL) {
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: 'SCRIPT_URL not configured' }),
+    };
+  }
+
   try {
-    const response = await fetch('https://script.google.com/macros/s/AKfycbz4OqaNzVHamo4hp5P0h4tNKeCIIDgokzagVGCJv-nNbl62i1-4U2b2dm98L7uFjeOX4g/exec', {
+    const response = await fetch(SCRIPT_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

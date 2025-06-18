@@ -39,7 +39,7 @@
   <div id="statsContainer"></div>
 
   <script>
-    const scriptURL = 'https://script.google.com/macros/s/AKfycbz4OqaNzVHamo4hp5P0h4tNKeCIIDgokzagVGCJv-nNbl62i1-4U2b2dm98L7uFjeOX4g/exec?type=all';
+    const scriptURL = `${process.env.SCRIPT_URL}?type=username`;
 
     function createTable(player, stats) {
       const table = document.createElement("table");

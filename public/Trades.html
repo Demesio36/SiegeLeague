@@ -67,7 +67,7 @@
   </div>
 
   <script>
-    const scriptURL = 'https://script.google.com/macros/s/AKfycbz4OqaNzVHamo4hp5P0h4tNKeCIIDgokzagVGCJv-nNbl62i1-4U2b2dm98L7uFjeOX4g/exec';
+    const scriptURL = process.env.SCRIPT_URL;
     const proxyURL = '/.netlify/functions/proxy-trade';
 
     let loggedInUser = localStorage.getItem("loggedInUser") || null;
