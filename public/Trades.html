@@ -67,7 +67,7 @@
   </div>
 
   <script>
-    const scriptURL = 'https://script.google.com/macros/s/AKfycbycGz3VqwZd15ihYzb1TunF8RretMdU1GJKQCCpHPsgxt2jR_y1Eu0andfRNxJWrPq0Ew/exec';
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbxOFQjaB4WAh3Z3Q4oYAMP-7FmXO1Eacn-DDfSdZ_mSQL0qpPNv0-6SjYBGsnKl136bEg/exec';
     const proxyURL = '/.netlify/functions/proxy-trade';
 
     let loggedInUser = localStorage.getItem("loggedInUser") || null;
@@ -191,7 +191,7 @@
             const acceptBtn = document.createElement("button");
             acceptBtn.textContent = "Accept";
             acceptBtn.onclick = () => {
-              alert("This would notify admin to manually process the trade.");
+              alert("Trades may take up to 10 minutes to show.");
               li.remove();
             };
 

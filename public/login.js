@@ -1,30 +1,22 @@
-const users = {
-  "Supercheese": "hentai",
-  "DGreatOOOOZZZZ": "pass36",
-  "Challito": "red01",
-  "Menudo": "it",
-  "Jeff": "260",
-  "Redbanana": "bandit",
-  "Spartacus": "spartacus",
-  "Arby": "meat",
-  "Harovo": "green",
-  "Mater": "truck"
-};
-
-document.getElementById("loginForm").addEventListener("submit", function (e) {
+document.getElementById("loginForm").addEventListener("submit", async function (e) {
   e.preventDefault();
 
   const username = document.getElementById("username").value.trim();
   const password = document.getElementById("password").value;
 
-  if (users[username] && users[username] === password) {
-    // Store username for session tracking
-    localStorage.setItem("loggedInUser", username);
+  const res = await fetch("/.netlify/functions/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password })
+  });
 
-    // Redirect to player's stats page using lowercase for sheet name
+  const result = await res.json();
+
+  if (result.success) {
+    localStorage.setItem("loggedInUser", username);
     window.location.href = `players/player.html?sheet=${username.toLowerCase()}`;
   } else {
-    // Show error if credentials are incorrect
     document.getElementById("error").style.display = "block";
   }
 });
+
