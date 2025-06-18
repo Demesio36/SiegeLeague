@@ -57,7 +57,14 @@
 
   <script>
     const scriptURL = "https://script.google.com/macros/s/AKfycbxK9Q_SgyqXMESycU3WL0XTHzU4WSF5T5hBDgl7Xji5S0ZqVg-9e6FS9DMTPm_G4CO_5Q/exec";
-    const loggedInUser = localStorage.getItem("loggedInUser") || "TestUser";
+    let loggedInUser = localStorage.getItem("loggedInUser") || null;
+if (!loggedInUser) {
+  alert("You must be logged in to trade.");
+  window.location.href = "../login.html";
+}
+allPlayersData[p.username.toLowerCase()] = p.operators;
+loggedInUser = loggedInUser.toLowerCase();
+
     let allPlayersData = {};
 
     async function loadPlayers() {
