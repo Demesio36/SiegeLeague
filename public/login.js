@@ -1,14 +1,14 @@
 const users = {
-  "Supercheese": process.env.SUPERCHEESE_PASS,
-  "DGreatOOOOZZZZ": process.env.DGOZ_PASS,
-  "Challito": process.env.CHALLITO_PASS,
-  "Menudo": process.env.MENUDO_PASS,
-  "Jeff": process.env.JEFF_PASS,
-  "Redbanana": process.env.REDBANANA_PASS,
-  "Spartacus": process.env.SPARTACUS_PASS,
-  "Arby": process.env.ARBY_PASS,
-  "Harovo": process.env.HAROVO_PASS,
-  "Mater": process.env.MATER_PASS
+  "Supercheese": "hentai",
+  "DGreatOOOOZZZZ": "pass36",
+  "Challito": "red01",
+  "Menudo": "it",
+  "Jeff": "260",
+  "Redbanana": "bandit",
+  "Spartacus": "spartacus",
+  "Arby": "meat",
+  "Harovo": "green",
+  "Mater": "truck"
 };
 
 document.getElementById("loginForm").addEventListener("submit", function (e) {

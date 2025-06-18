@@ -39,8 +39,7 @@
   <div id="statsContainer"></div>
 
   <script>
-   const proxyURL = '/.netlify/functions/proxy-trade';
-    const res = await fetch('/.netlify/functions/proxy-trade?type=username');
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbycGz3VqwZd15ihYzb1TunF8RretMdU1GJKQCCpHPsgxt2jR_y1Eu0andfRNxJWrPq0Ew/exec?type=all';
 
     function createTable(player, stats) {
       const table = document.createElement("table");
@@ -92,7 +91,7 @@
 
     async function loadAllStats() {
       try {
-        const res = await fetch(SCRIPT_URL);
+        const res = await fetch(scriptURL);
         const data = await res.json();
 
         const container = document.getElementById("statsContainer");

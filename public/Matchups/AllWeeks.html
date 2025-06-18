@@ -39,8 +39,7 @@
   <div id="weeksContainer"></div>
 
   <script>
-        const proxyURL = '/.netlify/functions/proxy-trade';
-    const res = await fetch('/.netlify/functions/proxy-trade?type=weeks');
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbycGz3VqwZd15ihYzb1TunF8RretMdU1GJKQCCpHPsgxt2jR_y1Eu0andfRNxJWrPq0Ew/exec?type=weeks';
 
     function createTable( weekname, weeks) {
         const urlParams = new URLSearchParams(window.location.search);
@@ -89,7 +88,7 @@
 
     async function loadAllWeeks() {
       try {
-        const res = await fetch(SCRIPT_URL);
+        const res = await fetch(scriptURL);
         const dataW = await res.json();
 
         const container = document.getElementById("weeksContainer");
