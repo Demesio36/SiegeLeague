@@ -2,34 +2,17 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Trade Center</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-    }
-    .trade-section {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
-    }
-    .player-card {
-      border: 1px solid #ccc;
-      padding: 10px;
-      border-radius: 5px;
-      background-color: #f9f9f9;
-    }
-    .form-section, .offers-section, .requests-section {
-      margin-top: 40px;
-    }
-    button {
-      margin-top: 10px;
-    }
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    .trade-section { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .player-card { border: 1px solid #ccc; padding: 10px; border-radius: 5px; background-color: #f9f9f9; }
+    .form-section, .offers-section, .pending-section { margin-top: 40px; }
+    button { margin-top: 10px; }
   </style>
 </head>
 <body>
-
   <h1>Trade Center</h1>
   <header>
     <a href="../index.html">Player List</a>
@@ -56,53 +39,54 @@
     <div id="message"></div>
   </div>
 
-  <div class="requests-section">
-    <h2>Your Requests</h2>
-    <ul id="yourRequests"></ul>
+  <div class="offers-section">
+    <h2>Trade Offers Sent to You</h2>
+    <ul id="incomingTrades"></ul>
   </div>
 
-  <div class="offers-section">
-    <h2>Offers Sent to You</h2>
-    <ul id="yourOffers"></ul>
+  <div class="pending-section">
+    <h2>Your Pending Trade Offers</h2>
+    <ul id="outgoingTrades"></ul>
   </div>
 
   <script>
-    const scriptURL = 'https://script.google.com/macros/s/AKfycbxOFQjaB4WAh3Z3Q4oYAMP-7FmXO1Eacn-DDfSdZ_mSQL0qpPNv0-6SjYBGsnKl136bEg/exec';
-    const proxyURL = '/.netlify/functions/proxy-trade';
-
-    let loggedInUser = localStorage.getItem("loggedInUser") || null;
+    const loggedInUser = localStorage.getItem("loggedInUser");
     if (!loggedInUser) {
       alert("You must be logged in to trade.");
       window.location.href = "../login.html";
     }
-    loggedInUser = loggedInUser.toLowerCase();
+
+    const SCRIPT_PROXY_URL = "/.netlify/functions/proxy-trade";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxOFQjaB4WAh3Z3Q4oYAMP-7FmXO1Eacn-DDfSdZ_mSQL0qpPNv0-6SjYBGsnKl136bEg/exec";
 
     let allPlayersData = {};
 
+    async function fetchJSON(url) {
+      const res = await fetch(url);
+      return await res.json();
+    }
+
     async function loadPlayers() {
-      const res = await fetch(`${scriptURL}?type=username`);
-      const usernames = await res.json();
-
-      const operatorsRes = await fetch(`${scriptURL}?type=all`);
-      const allStats = await operatorsRes.json();
-
-      usernames.forEach(username => {
-        const ops = allStats[username] ? allStats[username].map(row => row.Operator) : [];
-        allPlayersData[username.toLowerCase()] = ops;
-      });
+      const res = await fetchJSON(`${SCRIPT_URL}?type=all`);
+      allPlayersData = res;
 
       renderPlayerCards();
       populateTradeDropdowns();
     }
 
+    async function loadTrades() {
+      const res = await fetchJSON(`${SCRIPT_URL}?type=trades`);
+      renderTrades(res);
+    }
+
     function renderPlayerCards() {
-      const playerList = document.getElementById("playerList");
-      playerList.innerHTML = "";
-      for (const [username, operators] of Object.entries(allPlayersData)) {
+      const container = document.getElementById("playerList");
+      container.innerHTML = "";
+      for (const [player, ops] of Object.entries(allPlayersData)) {
         const card = document.createElement("div");
         card.className = "player-card";
-        card.innerHTML = `<h3>${username}</h3><ul>${operators.map(op => `<li>${op}</li>`).join("")}</ul>`;
-        playerList.appendChild(card);
+        card.innerHTML = `<h3>${player}</h3><ul>${ops.map(op => `<li>${op.Operator}</li>`).join("")}</ul>`;
+        container.appendChild(card);
       }
     }
 
@@ -117,7 +101,7 @@
 
       if (allPlayersData[loggedInUser]) {
         allPlayersData[loggedInUser].forEach(op => {
-          yourSelect.innerHTML += `<option value="${op}">${op}</option>`;
+          yourSelect.innerHTML += `<option value="${op.Operator}">${op.Operator}</option>`;
         });
       }
 
@@ -132,7 +116,7 @@
         targetSelect.innerHTML = "";
         if (allPlayersData[selectedPlayer]) {
           allPlayersData[selectedPlayer].forEach(op => {
-            targetSelect.innerHTML += `<option value="${op}">${op}</option>`;
+            targetSelect.innerHTML += `<option value="${op.Operator}">${op.Operator}</option>`;
           });
         }
       });
@@ -140,73 +124,84 @@
 
     document.getElementById("tradeForm").addEventListener("submit", async (e) => {
       e.preventDefault();
-      const yourOperator = document.getElementById("yourOperator").value;
-      const targetPlayer = document.getElementById("targetPlayer").value;
-      const targetOperator = document.getElementById("targetOperator").value;
-
       const payload = {
         type: "tradeRequest",
         username: loggedInUser,
-        yourOperator,
-        targetPlayer,
-        targetOperator
+        yourOperator: document.getElementById("yourOperator").value,
+        targetPlayer: document.getElementById("targetPlayer").value,
+        targetOperator: document.getElementById("targetOperator").value
       };
 
-      try {
-        const res = await fetch(proxyURL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
-        const msg = await res.text();
-        document.getElementById("message").textContent = msg;
-        loadTrades();
-      } catch (err) {
-        console.error("Failed to submit trade request:", err);
-        document.getElementById("message").textContent = "Failed to submit trade.";
-      }
+      const res = await fetch(SCRIPT_PROXY_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const msg = await res.text();
+      document.getElementById("message").textContent = msg;
+      loadTrades();
     });
 
-    async function loadTrades() {
-      try {
-        const res = await fetch(`${scriptURL}?type=trades`);
-        const trades = await res.json();
+    function renderTrades(trades) {
+      const incoming = document.getElementById("incomingTrades");
+      const outgoing = document.getElementById("outgoingTrades");
+      incoming.innerHTML = "";
+      outgoing.innerHTML = "";
 
-        const yourList = document.getElementById("yourRequests");
-        const offersList = document.getElementById("yourOffers");
-        yourList.innerHTML = "";
-        offersList.innerHTML = "";
+      trades.forEach(trade => {
+        const rowTime = new Date(trade.Timestamp).toISOString();
 
-        trades.forEach(trade => {
-          const tradeText = `${trade.username} wants to trade ${trade.yourOperator} for ${trade.targetOperator} from ${trade.targetPlayer} — [${trade.status}]`;
+        if (trade.To === loggedInUser && trade.Status === "Pending") {
+          const li = document.createElement("li");
+          li.textContent = `${trade.From} offered ${trade.Offered} for your ${trade.Requested}`;
 
-          if (trade.username.toLowerCase() === loggedInUser) {
-            const li = document.createElement("li");
-            li.textContent = tradeText;
-            yourList.appendChild(li);
-          } else if (trade.targetPlayer.toLowerCase() === loggedInUser) {
-            const li = document.createElement("li");
-            li.textContent = tradeText;
+          const accept = document.createElement("button");
+          accept.textContent = "Accept";
+          accept.onclick = async () => {
+            await fetch(SCRIPT_PROXY_URL, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                type: "acceptTrade",
+                timestamp: rowTime,
+                from_user: trade.From,
+                to_user: trade.To,
+                offered_operator: trade.Offered,
+                requested_operator: trade.Requested
+              })
+            });
+            loadTrades();
+          };
 
-            const acceptBtn = document.createElement("button");
-            acceptBtn.textContent = "Accept";
-            acceptBtn.onclick = () => {
-              alert("Trades may take up to 10 minutes to show.");
-              li.remove();
-            };
+          const deny = document.createElement("button");
+          deny.textContent = "Deny";
+          deny.onclick = async () => {
+            await fetch(SCRIPT_PROXY_URL, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                type: "denyTrade",
+                timestamp: rowTime,
+                from_user: trade.From,
+                to_user: trade.To,
+                offered_operator: trade.Offered,
+                requested_operator: trade.Requested
+              })
+            });
+            loadTrades();
+          };
 
-            const denyBtn = document.createElement("button");
-            denyBtn.textContent = "Decline";
-            denyBtn.onclick = () => li.remove();
+          li.appendChild(accept);
+          li.appendChild(deny);
+          incoming.appendChild(li);
+        }
 
-            li.appendChild(acceptBtn);
-            li.appendChild(denyBtn);
-            offersList.appendChild(li);
-          }
-        });
-      } catch (err) {
-        console.error("Failed to load trades:", err);
-      }
+        if (trade.From === loggedInUser && trade.Status === "Pending") {
+          const li = document.createElement("li");
+          li.textContent = `You offered ${trade.Offered} to ${trade.To} for ${trade.Requested}`;
+          outgoing.appendChild(li);
+        }
+      });
     }
 
     function logout() {
@@ -214,10 +209,8 @@
       window.location.href = "../login.html";
     }
 
-    window.onload = () => {
-      loadPlayers();
-      loadTrades();
-    };
+    loadPlayers();
+    loadTrades();
   </script>
 </body>
 </html>
