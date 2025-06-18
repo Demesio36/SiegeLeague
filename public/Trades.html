@@ -147,7 +147,7 @@
       };
 
       try {
-        const res = await fetch(scriptURL, {
+        const res = await fetch("/.netlify/functions/proxy-trade", {
           method: "POST",
           body: JSON.stringify(payload),
           headers: { "Content-Type": "application/json" }
