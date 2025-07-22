@@ -60,7 +60,24 @@
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxOFQjaB4WAh3Z3Q4oYAMP-7FmXO1Eacn-DDfSdZ_mSQL0qpPNv0-6SjYBGsnKl136bEg/exec";
 
     let allPlayersData = {};
+    if (!loggedInUser) {
+  window.location.href = "../login.html";
+}
+async function fetchAllPlayerStats() {
+  try {
+    const res = await fetch(`${SCRIPT_URL}?type=all`);
+    const allStats = await res.json();
+    allPlayersData = {};
 
+    for (const [username, statsList] of Object.entries(allStats)) {
+      allPlayersData[username.toLowerCase()] = statsList.map(row => row.Operator).filter(Boolean);
+    }
+
+    populateUI();
+  } catch (err) {
+    console.error("Failed to fetch player stats:", err);
+  }
+}
     async function fetchJSON(url) {
       const res = await fetch(url);
       return await res.json();
@@ -89,7 +106,28 @@
         container.appendChild(card);
       }
     }
+function populateUI() {
+  const grid = document.getElementById("playersGrid");
+  const targetPlayerSelect = document.getElementById("targetPlayer");
+  const yourOps = allPlayersData[loggedInUser] || [];
 
+  grid.innerHTML = "";
+  targetPlayerSelect.innerHTML = '<option value="">Select Player</option>';
+
+  for (const [player, ops] of Object.entries(allPlayersData)) {
+    const operatorsHTML = ops.map(op => `<li>${op}</li>`).join("");
+    const card = `
+      <div class="player-card">
+        <h3>${player}</h3>
+        <ul class="operator-list">${operatorsHTML}</ul>
+      </div>
+    `;
+    grid.innerHTML += card;
+
+    if (player !== loggedInUser) {
+      targetPlayerSelect.innerHTML += `<option value="${player}">${player}</option>`;
+    }}
+  }
     function populateTradeDropdowns() {
       const yourSelect = document.getElementById("yourOperator");
       const playerSelect = document.getElementById("targetPlayer");
@@ -121,7 +159,8 @@
         }
       });
     }
-
+document.getElementById("yourOperator").innerHTML = yourOps.map(op => `<option value="${op}">${op}</option>`).join("");
+  loadIncomingTrades();
     document.getElementById("tradeForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       const payload = {
