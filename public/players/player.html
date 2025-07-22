@@ -9,7 +9,6 @@
     body {
       font-family: Arial, sans-serif;
       padding: 20px;
-    
     }
     h2 {
       margin-top: 40px;
@@ -95,17 +94,17 @@
       <label for="targetOperator">Their Operator:</label>
       <select id="targetOperator"></select>
 
-      <button onclick="requestTrade()">Request Trade</button>
+      <button onclick="submitTradeOffer()">Request Trade</button>
       <p id="tradeMessage" style="color: green; display: none;">Trade request sent!</p>
     </div>
   </main>
 
   <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxOFQjaB4WAh3Z3Q4oYAMP-7FmXO1Eacn-DDfSdZ_mSQL0qpPNv0-6SjYBGsnKl136bEg/exec";
+    const SHEET_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxOFQjaB4WAh3Z3Q4oYAMP-7FmXO1Eacn-DDfSdZ_mSQL0qpPNv0-6SjYBGsnKl136bEg/exec";
+    const TRADE_FUNCTION_URL = "/.netlify/functions/trades";
 
-    let playerData = [];
-    const loggedInUser = localStorage.getItem("loggedInUser");
-    const allPlayersData = {}; // Cache of all players' operators
+    const loggedInUser = localStorage.getItem("loggedInUser")?.toLowerCase();
+    const allPlayersData = {};
 
     if (!loggedInUser) {
       window.location.href = "../login.html";
@@ -119,9 +118,8 @@
       document.querySelector('h1').textContent = `${player}'s`;
 
       try {
-        const response = await fetch(`${SCRIPT_URL}?sheet=${player}`);
+        const response = await fetch(`${SHEET_SCRIPT_URL}?sheet=${player}`);
         const data = await response.json();
-        playerData = data;
 
         const sections = { 'Attackers': [], 'Defenders': [], 'Backups': [] };
         data.forEach(entry => {
@@ -135,7 +133,8 @@
 
         if (player === loggedInUser.toLowerCase()) {
           populateSwapDropdowns(sections);
-          populateTargetPlayers();
+          await populateTargetPlayers();
+          populateTradeForm();
           document.getElementById("swapContainer").style.display = "block";
         } else {
           document.getElementById("swapContainer").style.display = "none";
@@ -185,45 +184,62 @@
     }
 
     async function populateTargetPlayers() {
-      const response = await fetch(`${SCRIPT_URL}?type=players`);
+      const response = await fetch(`${SHEET_SCRIPT_URL}?type=username`);
       const players = await response.json();
 
-      // Preload their operators
       for (const player of players) {
-        const res = await fetch(`${SCRIPT_URL}?sheet=${player}`);
+        const res = await fetch(`${SHEET_SCRIPT_URL}?sheet=${player}`);
         const data = await res.json();
         allPlayersData[player.toLowerCase()] = data.map(op => op.Operator);
       }
-    }
 
+      const targetPlayerSelect = document.getElementById("targetPlayer");
+      targetPlayerSelect.innerHTML = '<option value="">Select Player</option>';
 
-    async function swapOperators() {
-      const fromOperator = document.getElementById("mainSelect").value;
-      const toOperator = document.getElementById("backupSelect").value;
-
-      try {
-        await fetch(`${SCRIPT_URL}`, {
-          method: "POST",
-          mode: "no-cors",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            type: "swap",
-            username: loggedInUser.toLowerCase(),
-            fromOperator,
-            toOperator
-          })
-        });
-
-        document.getElementById("swapMessage").style.display = "block";
-        document.getElementById("swapMessage").textContent = "Request sent! Swaps may take about 5-10 mins to change.";
-      } catch (err) {
-        console.error("Swap failed:", err);
+      for (const player of players) {
+        if (player.toLowerCase() !== loggedInUser) {
+          targetPlayerSelect.innerHTML += `<option value="${player.toLowerCase()}">${player}</option>`;
+        }
       }
     }
 
-   
+    function populateTradeForm() {
+      const yourOps = allPlayersData[loggedInUser] || [];
+      document.getElementById("yourOperator").innerHTML = yourOps.map(op => `<option value="${op}">${op}</option>`).join('');
+    }
+
+    function updateTargetOperators() {
+      const selected = document.getElementById("targetPlayer").value;
+      const ops = allPlayersData[selected] || [];
+      document.getElementById("targetOperator").innerHTML = ops.map(op => `<option value="${op}">${op}</option>`).join("");
+    }
+
+    async function submitTradeOffer() {
+      const yourOperator = document.getElementById("yourOperator").value;
+      const targetPlayer = document.getElementById("targetPlayer").value;
+      const targetOperator = document.getElementById("targetOperator").value;
+
+      const trade = {
+        type: "storeTrade",
+        from: loggedInUser,
+        yourOperator,
+        targetPlayer,
+        targetOperator,
+        status: "pending"
+      };
+
+      try {
+        await fetch(TRADE_FUNCTION_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(trade)
+        });
+        document.getElementById("tradeMessage").style.display = "block";
+        document.getElementById("tradeMessage").textContent = "Trade request submitted!";
+      } catch (err) {
+        console.error("Trade request failed:", err);
+      }
+    }
 
     function logout() {
       localStorage.removeItem("loggedInUser");
