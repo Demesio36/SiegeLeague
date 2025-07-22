@@ -101,7 +101,7 @@
 
   <script>
     const SHEET_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxOFQjaB4WAh3Z3Q4oYAMP-7FmXO1Eacn-DDfSdZ_mSQL0qpPNv0-6SjYBGsnKl136bEg/exec";
-    const TRADE_FUNCTION_URL = "/.netlify/functions/trades";
+    const TRADE_FUNCTION_URL = "/.netlify/functions/proxy-trade";
 
     const loggedInUser = localStorage.getItem("loggedInUser")?.toLowerCase();
     const allPlayersData = {};
@@ -206,6 +206,9 @@
     function populateTradeForm() {
       const yourOps = allPlayersData[loggedInUser] || [];
       document.getElementById("yourOperator").innerHTML = yourOps.map(op => `<option value="${op}">${op}</option>`).join('');
+      console.log("Logged in user:", loggedInUser);
+      console.log("Their operators:", allPlayersData[loggedInUser]);
+
     }
 
     function updateTargetOperators() {
