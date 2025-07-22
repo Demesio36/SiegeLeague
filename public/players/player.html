@@ -96,19 +96,20 @@
 
       <button onclick="submitTradeOffer()">Request Trade</button>
       <p id="tradeMessage" style="color: green; display: none;">Trade request sent!</p>
+
+      <hr />
+      <h3>Trade Requests</h3>
+      <div id="tradeRequests"></div>
     </div>
   </main>
 
   <script>
     const SHEET_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxOFQjaB4WAh3Z3Q4oYAMP-7FmXO1Eacn-DDfSdZ_mSQL0qpPNv0-6SjYBGsnKl136bEg/exec";
     const TRADE_FUNCTION_URL = "/.netlify/functions/proxy-trade";
-
     const loggedInUser = localStorage.getItem("loggedInUser")?.toLowerCase();
     const allPlayersData = {};
 
-    if (!loggedInUser) {
-      window.location.href = "../login.html";
-    }
+    if (!loggedInUser) window.location.href = "../login.html";
 
     async function fetchStats() {
       const urlParams = new URLSearchParams(window.location.search);
@@ -135,6 +136,7 @@
           populateSwapDropdowns(sections);
           await populateTargetPlayers();
           populateTradeForm();
+          await loadTradeRequests();
           document.getElementById("swapContainer").style.display = "block";
         } else {
           document.getElementById("swapContainer").style.display = "none";
@@ -146,59 +148,40 @@
     }
 
     function createRow(stats) {
-      const kills = parseFloat(stats.Kills) || 0;
-      const deaths = parseFloat(stats.Deaths) || 0;
-      const kd = deaths === 0 ? kills : (kills / deaths);
-      const headshots = Math.round(parseFloat(stats["Headshot %"]) || 0);
-      const assists = parseFloat(stats.Assist) || 0;
-      const aces = parseFloat(stats.Aces) || 0;
-      const rounds = parseFloat(stats["Rounds Played"]) || 0;
-      const teamKills = parseFloat(stats["Team Kills"]) || 0;
-      const totalPoints = parseFloat(stats["Total Points"])||0;
-
-      return `
-        <tr>
-          <td>${stats.Operator}</td>
-          <td>${kills}</td>
-          <td>${deaths}</td>
-          <td>${kd.toFixed(2)}</td>
-          <td>${headshots}</td>
-          <td>${assists}</td>
-          <td>${aces}</td>
-          <td>${teamKills}</td>
-          <td>${totalPoints}</td>
-          <td>${rounds}</td>
-        </tr>`;
+      const kd = stats.Deaths == 0 ? stats.Kills : (stats.Kills / stats.Deaths);
+      return `<tr>
+        <td>${stats.Operator}</td>
+        <td>${stats.Kills}</td>
+        <td>${stats.Deaths}</td>
+        <td>${kd.toFixed(2)}</td>
+        <td>${stats["Headshot %"]}</td>
+        <td>${stats.Assist}</td>
+        <td>${stats.Aces}</td>
+        <td>${stats["Team Kills"]}</td>
+        <td>${stats["Total Points"]}</td>
+        <td>${stats["Rounds Played"]}</td>
+      </tr>`;
     }
 
     function populateSwapDropdowns(sections) {
-      const mainSelect = document.getElementById("mainSelect");
-      const backupSelect = document.getElementById("backupSelect");
-      const yourOperator = document.getElementById("yourOperator");
-
       const mainOps = [...sections.Attackers, ...sections.Defenders];
-
-      mainSelect.innerHTML = mainOps.map(op => `<option value="${op.Operator}">${op.Operator}</option>`).join('');
-      backupSelect.innerHTML = sections.Backups.map(op => `<option value="${op.Operator}">${op.Operator}</option>`).join('');
-      yourOperator.innerHTML = [...mainOps, ...sections.Backups].map(op => `<option value="${op.Operator}">${op.Operator}</option>`).join('');
+      document.getElementById("mainSelect").innerHTML = mainOps.map(op => `<option value="${op.Operator}">${op.Operator}</option>`).join('');
+      document.getElementById("backupSelect").innerHTML = sections.Backups.map(op => `<option value="${op.Operator}">${op.Operator}</option>`).join('');
+      document.getElementById("yourOperator").innerHTML = [...mainOps, ...sections.Backups].map(op => `<option value="${op.Operator}">${op.Operator}</option>`).join('');
     }
 
     async function populateTargetPlayers() {
-      const response = await fetch(`${SHEET_SCRIPT_URL}?type=username`);
-      const players = await response.json();
+      const res = await fetch(`${SHEET_SCRIPT_URL}?type=username`);
+      const players = await res.json();
+      const targetSelect = document.getElementById("targetPlayer");
+      targetSelect.innerHTML = '<option value="">Select Player</option>';
 
       for (const player of players) {
-        const res = await fetch(`${SHEET_SCRIPT_URL}?sheet=${player}`);
-        const data = await res.json();
+        const playerData = await fetch(`${SHEET_SCRIPT_URL}?sheet=${player}`);
+        const data = await playerData.json();
         allPlayersData[player.toLowerCase()] = data.map(op => op.Operator);
-      }
-
-      const targetPlayerSelect = document.getElementById("targetPlayer");
-      targetPlayerSelect.innerHTML = '<option value="">Select Player</option>';
-
-      for (const player of players) {
         if (player.toLowerCase() !== loggedInUser) {
-          targetPlayerSelect.innerHTML += `<option value="${player.toLowerCase()}">${player}</option>`;
+          targetSelect.innerHTML += `<option value="${player.toLowerCase()}">${player}</option>`;
         }
       }
     }
@@ -206,15 +189,12 @@
     function populateTradeForm() {
       const yourOps = allPlayersData[loggedInUser] || [];
       document.getElementById("yourOperator").innerHTML = yourOps.map(op => `<option value="${op}">${op}</option>`).join('');
-      console.log("Logged in user:", loggedInUser);
-      console.log("Their operators:", allPlayersData[loggedInUser]);
-
     }
 
     function updateTargetOperators() {
       const selected = document.getElementById("targetPlayer").value;
       const ops = allPlayersData[selected] || [];
-      document.getElementById("targetOperator").innerHTML = ops.map(op => `<option value="${op}">${op}</option>`).join("");
+      document.getElementById("targetOperator").innerHTML = ops.map(op => `<option value="${op}">${op}</option>`).join('');
     }
 
     async function submitTradeOffer() {
@@ -239,8 +219,47 @@
         });
         document.getElementById("tradeMessage").style.display = "block";
         document.getElementById("tradeMessage").textContent = "Trade request submitted!";
+        await loadTradeRequests();
       } catch (err) {
         console.error("Trade request failed:", err);
+      }
+    }
+
+    async function loadTradeRequests() {
+      const res = await fetch(`${TRADE_FUNCTION_URL}?type=trades`);
+      const trades = await res.json();
+      const container = document.getElementById("tradeRequests");
+
+      const relevantTrades = trades.filter(t => t.Status === "Pending" && (t.From === loggedInUser || t.To === loggedInUser));
+
+      container.innerHTML = relevantTrades.map(t => `
+        <div style="border:1px solid #ccc;padding:10px;margin-top:10px">
+          <strong>${t.From}</strong> offers <strong>${t.YourOperator}</strong> for <strong>${t.TargetOperator}</strong> from <strong>${t.To}</strong>
+          ${t.To === loggedInUser ? `
+            <button onclick='handleTradeAction("accept", ${JSON.stringify(t)})'>Accept</button>
+            <button onclick='handleTradeAction("deny", ${JSON.stringify(t)})'>Deny</button>` : ""}
+        </div>
+      `).join('');
+    }
+
+    async function handleTradeAction(action, trade) {
+      try {
+        const payload = {
+          type: action === "accept" ? "acceptTrade" : "denyTrade",
+          timestamp: new Date(trade.Timestamp).toISOString(),
+          from_user: trade.From,
+          to_user: trade.To,
+          offered_operator: trade.YourOperator,
+          requested_operator: trade.TargetOperator
+        };
+        await fetch(TRADE_FUNCTION_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        await loadTradeRequests();
+      } catch (err) {
+        console.error("Error handling trade:", err);
       }
     }
 
