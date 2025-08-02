@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Player Page</title>
+  <link rel="stylesheet" href="../style.css" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    h2 {
+      margin-top: 40px;
+      border-bottom: 1px solid #ccc;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 40px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 6px 10px;
+      text-align: center;
+    }
+    th {
+      background-color: #000000;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>Player's Page</h1>
+    <a href="../playerlist.html">Back to Player List</a>
+    <a href="../index.html">Homepage</a>
+    <a href="../Trades.html">Trades</a>
+    <a href="./allplayers.html">All Players Stats</a>
+    <a href="../Matchups/AllWeeks.html">All Matchups</a>
+    <button onclick="logout()">Logout</button>
+  </header>
+
+  <main>
+    <section>
+      <h2>Operators</h2>
+      <table id="Operator">
+        <thead>
+          <tr><th>Operator</th><th>Kills</th><th>Deaths</th><th>K/D</th><th>HS</th><th>Assists</th><th>Aces</th><th>Team Kills</th><th>Total Points</th><th>Rounds Played</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+  </main>
+
+  <script>
+    const SHEET_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbztmz515GjlvCcsujCfDi-sRWT5ij9Pv_CptvZDxU4E1SQYgxoJJD6SUI1WYo82-JjgwQ/exec";
+    const TRADE_FUNCTION_URL = "/.netlify/functions/trades";
+    const loggedInUser = localStorage.getItem("loggedInUser")?.toLowerCase();
+    const allPlayersData = {};
+
+    if (!loggedInUser) window.location.href = "../login.html";
+
+    async function fetchStats() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const player = urlParams.get('sheet') || 'arby';
+
+      document.title = `${player}'s - Player Page`;
+      document.querySelector('h1').textContent = `${player}'s`;
+
+      try {
+        const response = await fetch(`${SHEET_SCRIPT_URL}?sheet=${player}`);
+        const data = await response.json();
+
+        const sections = { 'Operator': [] };
+        data.forEach(entry => {
+          if (sections[entry.Role]) sections[entry.Role].push(entry);
+        });
+
+        Object.entries(sections).forEach(([role, operators]) => {
+          const tableBody = document.querySelector(`#${role.toLowerCase()} tbody`);
+          tableBody.innerHTML = operators.map(createRow).join('');
+        });
+
+        if (player === loggedInUser.toLowerCase()) {
+          populateSwapDropdowns(sections);
+          await populateTargetPlayers();
+          populateTradeForm();
+          await loadTradeRequests();
+          document.getElementById("swapContainer").style.display = "block";
+        } else {
+          document.getElementById("swapContainer").style.display = "none";
+        }
+
+      } catch (error) {
+        console.error('Error fetching player data:', error);
+      }
+    }
+
+    function createRow(stats) {
+      const kd = stats.Deaths == 0 ? stats.Kills : (stats.Kills / stats.Deaths);
+      return `<tr>
+        <td>${stats.Operator}</td>
+        <td>${stats.Kills}</td>
+        <td>${stats.Deaths}</td>
+        <td>${kd.toFixed(2)}</td>
+        <td>${stats["Headshot %"]}</td>
+        <td>${stats.Assist}</td>
+        <td>${stats.Aces}</td>
+        <td>${stats["Team Kills"]}</td>
+        <td>${stats["Total Points"]}</td>
+        <td>${stats["Rounds Played"]}</td>
+      </tr>`;
+    }
+
+    function populateSwapDropdowns(sections) {
+      const mainOps = [...sections.Attackers, ...sections.Defenders];
+      document.getElementById("mainSelect").innerHTML = mainOps.map(op => `<option value="${op.Operator}">${op.Operator}</option>`).join('');
+      document.getElementById("backupSelect").innerHTML = sections.Backups.map(op => `<option value="${op.Operator}">${op.Operator}</option>`).join('');
+      document.getElementById("yourOperator").innerHTML = [...mainOps, ...sections.Backups].map(op => `<option value="${op.Operator}">${op.Operator}</option>`).join('');
+    }
+
+    async function populateTargetPlayers() {
+      const res = await fetch(`${SHEET_SCRIPT_URL}?type=usernameStat`);
+      const players = await res.json();
+      const targetSelect = document.getElementById("targetPlayer");
+      targetSelect.innerHTML = '<option value="">Select Player</option>';
+
+      for (const player of players) {
+        const playerData = await fetch(`${SHEET_SCRIPT_URL}?sheet=${player}`);
+        const data = await playerData.json();
+        allPlayersData[player.toLowerCase()] = data.map(op => op.Operator);
+        if (player.toLowerCase() !== loggedInUser) {
+          targetSelect.innerHTML += `<option value="${player.toLowerCase()}">${player}</option>`;
+        }
+      }
+    }
+
+
+    function logout() {
+      localStorage.removeItem("loggedInUser");
+      window.location.href = "../login.html";
+    }
+
+    window.onload = fetchStats;
+  </script>
+</body>
+</html>

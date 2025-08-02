@@ -1,7 +1,7 @@
 // netlify/functions/proxy-trade.js
 import fetch from 'node-fetch';
 
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwqFb2dkMMB0VeezAu0qG74_N4uYX1EjErk49QNM76qCgzGCt6iqckez6ddjtBz2OtXXA/exec';
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbztmz515GjlvCcsujCfDi-sRWT5ij9Pv_CptvZDxU4E1SQYgxoJJD6SUI1WYo82-JjgwQ/exec';
 
 export const handler = async (event) => {
   const method = event.httpMethod;
